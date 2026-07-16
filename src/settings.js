@@ -126,10 +126,7 @@ function validateLiveConfiguration(input) {
   if (String(input?.DEMO_MODE ?? config.DEMO_MODE) !== 'false') return;
   const effective = (key) => input?.[key] || config[key];
   const required = [
-    ['ADMIN_PASSWORD','dashboard password'], ['OPENAI_API_KEY','OpenAI API key'],
-    ['SLACK_BOT_TOKEN','Slack bot token'], ['SLACK_SIGNING_SECRET','Slack signing secret'],
-    ['MICROSOFT_CLIENT_ID','Microsoft client ID'], ['MICROSOFT_CLIENT_SECRET','Microsoft client secret'],
-    ['INTERNAL_DOMAINS','internal company domain']
+    ['ADMIN_PASSWORD','dashboard password']
   ];
   const missing = required.filter(([key]) => !effective(key)).map(([, label]) => label);
   if (!String(effective('APP_BASE_URL') || '').startsWith('https://')) missing.push('public HTTPS app URL');

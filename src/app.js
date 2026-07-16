@@ -83,7 +83,6 @@ app.post('/api/test/preview', adminAuth, async (req, res) => {
 });
 app.post('/api/test/slack', adminAuth, async (req, res) => {
   try {
-    if (config.demoMode) throw new Error('Enable live mode before sending a real Slack test');
     if (!integrationStatus().slack) throw new Error('Save the Slack bot token and signing secret first');
     const payload = typeof req.body.payload === 'string' ? JSON.parse(req.body.payload) : req.body.payload;
     const meeting = normalizeWebhook(payload || {});

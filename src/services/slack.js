@@ -14,9 +14,9 @@ export function verifySlackRequest(rawBody, timestamp, signature) {
   return safeEqual(expected, signature);
 }
 
-export async function postReview(meeting, draft) {
+export async function postReview(meeting, draft, { allowInDemo = false } = {}) {
   const client = slackClient();
-  if (!client || config.demoMode) return { channel: 'demo', ts: String(Date.now() / 1000) };
+  if (!client || (config.demoMode && !allowInDemo)) return { channel: 'demo', ts: String(Date.now() / 1000) };
   let channel = config.aeSlackMap[meeting.owner_email] || config.SLACK_FALLBACK_CHANNEL;
   if (!channel) throw new Error(`No Slack destination is mapped for ${meeting.owner_email || 'the meeting owner'}`);
   if (channel.startsWith('U')) channel = (await client.conversations.open({ users: channel })).channel.id;

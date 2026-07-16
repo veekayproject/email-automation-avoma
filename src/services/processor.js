@@ -103,7 +103,7 @@ export async function createSlackTestReview(meetingInput, draftInput, actor = 'd
     recipient: draftInput.recipient, cc: draftInput.cc || [], bcc: draftInput.bcc || [], reviewToken: randomToken(),
     generation: { model: config.OPENAI_MODEL, template_type: draftInput.template_type, test: true } });
   updateMeeting(meetingId, { status: 'draft_created' });
-  const slack = await postReview(getMeeting(meetingId), draft);
+  const slack = await postReview(getMeeting(meetingId), draft, { allowInDemo: true });
   updateDraft(meetingId, { slackChannel: slack.channel, slackTs: slack.ts });
   updateMeeting(meetingId, { status: 'waiting_review', status_reason: 'Test Lab draft - review and edit before sending' });
   audit(meetingId, 'test_review_created', { slackChannel: slack.channel }, actor);
