@@ -112,6 +112,15 @@ test('Test Lab returns mapped fields and an editable conditional draft', async (
   assert.match(preview.draft.body, /Hi Casey/);
 });
 
+test('Slack Test Lab is not blocked by Demo mode', async () => {
+  const response = await fetch(`${base}/api/test/slack`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ payload: externalMeeting('meeting-slack-test'), draft: {} })
+  });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, 'Save the Slack bot token and signing secret first');
+});
+
 function externalMeeting(id) {
   return { event: 'meeting.analysis.ready', data: { meeting: {
     id, title: 'Discovery call', start_at: '2026-07-16T10:00:00Z',

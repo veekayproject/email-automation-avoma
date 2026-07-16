@@ -121,7 +121,7 @@ $('#generate-test').addEventListener('click', async () => {
     lastTestPayload = JSON.parse($('#test-payload').value);
     const result = await api('/api/test/preview', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({payload:lastTestPayload}) });
     lastTestDraft = result.draft; renderTestResult(result);
-    $('#send-slack-test').disabled = !(result.integrations.slack && !result.integrations.demoMode);
+    $('#send-slack-test').disabled = !result.integrations.slack;
     toast('Test draft generated — edit any field');
   } catch (error) { toast(error.message); }
   finally { button.disabled = false; button.textContent = 'Map payload & generate preview'; }
