@@ -1,5 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 let config;
+let settingsLoaded = false;
 
 async function load() {
   try {
@@ -10,7 +11,7 @@ async function load() {
 
 function renderConfig() {
   $('#webhook-url').textContent = config.webhookUrl;
-  const names = { avoma:'Avoma', openai:'OpenAI', slack:'Slack', microsoft:'Outlook', demoMode:'Demo mode' };
+  const names = { avoma:'Avoma', openai:'OpenAI', slack:'Slack', microsoft:'Outlook', hubspot:'HubSpot', demoMode:'Demo mode' };
   $('#integrations').innerHTML = Object.entries(config.integrations).map(([key, ready]) => `<div class="integration ${ready ? key === 'demoMode' ? 'demo' : 'ready' : ''}"><span>${names[key]}</span><i></i></div>`).join('');
   $('#account-list').innerHTML = config.accounts.length ? config.accounts.map((a) => `<span class="account-pill">✓ ${escapeHtml(a.email)}</span>`).join('') : '<p class="muted">No Outlook accounts connected yet.</p>';
 }
@@ -34,6 +35,58 @@ $('#refresh-button').addEventListener('click', load);
 $('#demo-button').addEventListener('click', async () => { try { $('#demo-button').disabled = true; await api('/api/demo', { method:'POST' }); toast('Sample meeting received'); setTimeout(load, 900); } catch (e) { toast(e.message); } finally { $('#demo-button').disabled = false; } });
 $('#connect-form').addEventListener('submit', (event) => { event.preventDefault(); location.href = `/auth/microsoft/start?email=${encodeURIComponent($('#ae-email').value)}`; });
 $('.dialog-close').addEventListener('click', () => $('#detail-dialog').close());
+
+document.querySelectorAll('.nav-button').forEach((button) => button.addEventListener('click', async () => {
+  document.querySelectorAll('.nav-button').forEach((item) => item.classList.toggle('active', item === button));
+  document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.toggle('active', panel.id === `${button.dataset.tab}-panel`));
+  if (button.dataset.tab === 'settings' && !settingsLoaded) await loadSettings();
+}));
+
+async function loadSettings() {
+  try {
+    const data = await api('/api/settings');
+    const form = $('#settings-form');
+    for (const [key, value] of Object.entries(data.values)) {
+      const field = form.elements.namedItem(key); if (!field) continue;
+      if (field.type === 'checkbox') field.checked = value === 'true'; else field.value = value;
+    }
+    for (const [key, saved] of Object.entries(data.configuredSecrets)) {
+      const field = form.elements.namedItem(key); if (!field || !saved) continue;
+      field.placeholder = 'Saved securely — leave blank to keep'; field.classList.add('secret-saved');
+    }
+    $('#live-mode').checked = data.values.DEMO_MODE === 'false';
+    updateModeLabel(); updateSettingsUrls(data.values.APP_BASE_URL);
+    $('#settings-account-list').innerHTML = data.accounts.length ? data.accounts.map((a) => `<span class="account-pill">✓ ${escapeHtml(a.email)}</span>`).join('') : '<p class="muted">No Outlook accounts connected yet.</p>';
+    settingsLoaded = true;
+  } catch (error) { toast(error.message); }
+}
+
+$('#live-mode').addEventListener('change', updateModeLabel);
+function updateModeLabel() { $('#mode-description').textContent = $('#live-mode').checked ? 'Real integrations enabled after save' : 'Safe sample data only'; }
+function updateSettingsUrls(base) {
+  const clean = String(base || '').replace(/\/$/, '');
+  $('#slack-url').textContent = clean ? `${clean}/api/slack/interactions` : 'Save your public app URL first';
+  const redirect = $('#settings-form').elements.namedItem('MICROSOFT_REDIRECT_URI');
+  if (clean && (!redirect.value || redirect.value.includes('localhost'))) redirect.value = `${clean}/auth/microsoft/callback`;
+}
+
+$('#settings-form').elements.namedItem('APP_BASE_URL').addEventListener('input', (event) => updateSettingsUrls(event.target.value));
+$('#settings-form').addEventListener('submit', async (event) => {
+  event.preventDefault(); const button = $('#save-settings'); button.disabled = true; $('#save-state').textContent = 'Saving encrypted settings…';
+  try {
+    const form = new FormData(event.currentTarget); const payload = Object.fromEntries(form.entries());
+    payload.DEMO_MODE = String(!$('#live-mode').checked); payload.HUBSPOT_ENABLED = String(event.currentTarget.elements.namedItem('HUBSPOT_ENABLED').checked);
+    const result = await api('/api/settings', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(payload) });
+    config.integrations = result.integrations; renderConfig(); $('#save-state').textContent = 'Saved — changes are active'; toast('Settings saved securely');
+    settingsLoaded = false; if (result.reauthenticate) setTimeout(() => location.reload(), 1100);
+  } catch (error) { $('#save-state').textContent = 'Could not save settings'; toast(error.message); }
+  finally { button.disabled = false; }
+});
+
+$('#settings-connect-outlook').addEventListener('click', () => {
+  const email = $('#settings-ae-email').value.trim(); if (!email.includes('@')) return toast('Enter the AE email first');
+  location.href = `/auth/microsoft/start?email=${encodeURIComponent(email)}`;
+});
 
 async function api(url, init) { const response = await fetch(url, init); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Request failed'); return data; }
 function toast(message) { const el = $('#toast'); el.textContent = message; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2600); }

@@ -46,10 +46,24 @@ export const config = {
   aeSlackMap: parseJson(raw.AE_SLACK_MAP, {})
 };
 
+export function applyRuntimeConfig(values = {}) {
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined && key in config) config[key] = value;
+  }
+  config.demoMode = String(config.DEMO_MODE) === 'true';
+  config.hubspotEnabled = String(config.HUBSPOT_ENABLED) === 'true';
+  config.internalDomains = String(config.INTERNAL_DOMAINS || '').split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
+  config.defaultCc = String(config.DEFAULT_CC || '').split(',').map((v) => v.trim()).filter(Boolean);
+  config.aeSlackMap = parseJson(String(config.AE_SLACK_MAP || '{}'), {});
+  config.EMAIL_MAX_WORDS = Number(config.EMAIL_MAX_WORDS) || 220;
+  return config;
+}
+
 export const integrationStatus = () => ({
   avoma: Boolean(config.AVOMA_API_KEY),
   openai: Boolean(config.OPENAI_API_KEY),
   slack: Boolean(config.SLACK_BOT_TOKEN && config.SLACK_SIGNING_SECRET),
   microsoft: Boolean(config.MICROSOFT_CLIENT_ID && config.MICROSOFT_CLIENT_SECRET),
+  hubspot: Boolean(config.HUBSPOT_ACCESS_TOKEN),
   demoMode: config.demoMode
 });

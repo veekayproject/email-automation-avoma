@@ -3,7 +3,7 @@ import { WebClient } from '@slack/web-api';
 import { config } from '../config.js';
 import { safeEqual } from '../lib/crypto.js';
 
-const client = config.SLACK_BOT_TOKEN ? new WebClient(config.SLACK_BOT_TOKEN) : null;
+const slackClient = () => config.SLACK_BOT_TOKEN ? new WebClient(config.SLACK_BOT_TOKEN) : null;
 const trim = (value, max = 2800) => String(value || '').slice(0, max);
 
 export function verifySlackRequest(rawBody, timestamp, signature) {
@@ -15,6 +15,7 @@ export function verifySlackRequest(rawBody, timestamp, signature) {
 }
 
 export async function postReview(meeting, draft) {
+  const client = slackClient();
   if (!client || config.demoMode) return { channel: 'demo', ts: String(Date.now() / 1000) };
   let channel = config.aeSlackMap[meeting.owner_email] || config.SLACK_FALLBACK_CHANNEL;
   if (!channel) throw new Error(`No Slack destination is mapped for ${meeting.owner_email || 'the meeting owner'}`);
@@ -24,11 +25,13 @@ export async function postReview(meeting, draft) {
 }
 
 export async function updateReview(meeting, draft) {
+  const client = slackClient();
   if (!client || config.demoMode || draft.slack_channel === 'demo') return;
   await client.chat.update({ channel: draft.slack_channel, ts: draft.slack_ts, text: `Follow-up: ${meeting.status}`, blocks: reviewBlocks(meeting, draft) });
 }
 
 export async function openEditModal(triggerId, meeting, draft) {
+  const client = slackClient();
   if (!client) return;
   await client.views.open({ trigger_id: triggerId, view: {
     type: 'modal', callback_id: 'edit_draft', private_metadata: meeting.id,
@@ -43,6 +46,7 @@ export async function openEditModal(triggerId, meeting, draft) {
 }
 
 export async function downloadSlackFiles(fileIds = []) {
+  const client = slackClient();
   if (!client || !fileIds.length) return [];
   const files = [];
   let total = 0;

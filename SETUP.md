@@ -1,6 +1,18 @@
 # FollowPilot setup and publishing guide
 
-This guide takes the app from local demo to a production webhook. The workflow is intentionally human-in-the-loop: generated content is never sent until an AE presses **Send email** in Slack or the signed review page.
+This guide takes the app from local demo to a production webhook. Provider credentials, templates, domains, and mappings can be entered in the dashboard's **Settings** tab. The workflow is intentionally human-in-the-loop: generated content is never sent until an AE presses **Send email** in Slack or the signed review page.
+
+## Recommended: deploy on your existing VPS
+
+Upload the repository to the VPS, then run:
+
+```bash
+docker compose -f docker-compose.vps.yml up -d --build
+```
+
+The app listens only on `127.0.0.1:3100`. Point a subdomain such as `followup.example.com` to that port using the same Nginx, Nginx Proxy Manager, Caddy, or Traefik installation that fronts n8n. Enable HTTPS, open the dashboard, go to **Settings**, and enter the public URL and provider credentials. No API secrets need to be placed in an environment file.
+
+The Docker volume `followpilot_data` stores the encrypted settings, audit database, Microsoft tokens, and automatically generated encryption key. Back up this volume.
 
 ## 1. Decide the email policy
 

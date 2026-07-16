@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { app } from '../src/app.js';
+import { config } from '../src/config.js';
 import { approveAndSend } from '../src/services/processor.js';
-import { getDraftByMeeting, getMeeting } from '../src/db.js';
+import { db, getDraftByMeeting, getMeeting } from '../src/db.js';
 
 let server; let base;
 test.before(() => new Promise((resolve) => {
@@ -47,6 +48,20 @@ test('email cannot send twice and records approval in demo mode', async () => {
   await assert.rejects(() => approveAndSend(id, 'second-reviewer'), /cannot be sent/);
 });
 
+test('dashboard settings persist secrets without returning plaintext', async () => {
+  const saved = await fetch(`${base}/api/settings`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ OPENAI_API_KEY: 'test-secret-key', EMAIL_TONE: 'clear and friendly' })
+  });
+  assert.equal(saved.status, 200);
+  const response = await fetch(`${base}/api/settings`); const settings = await response.json();
+  assert.equal(settings.values.EMAIL_TONE, 'clear and friendly');
+  assert.equal(settings.configuredSecrets.OPENAI_API_KEY, true);
+  assert.equal(JSON.stringify(settings).includes('test-secret-key'), false);
+  const stored = db.prepare('SELECT value FROM app_settings WHERE key=?').get('OPENAI_API_KEY');
+  assert.equal(stored.value.includes('test-secret-key'), false);
+});
+
 function externalMeeting(id) {
   return { event: 'meeting.analysis.ready', data: { meeting: {
     id, title: 'Discovery call', start_at: '2026-07-16T10:00:00Z',
@@ -55,7 +70,7 @@ function externalMeeting(id) {
     summary: 'Casey wants a faster reviewed follow-up process.', action_items: ['Avery will share a pilot plan.']
   } } };
 }
-function request(payload) { return { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }; }
+function request(payload) { return { method: 'POST', headers: { 'content-type': 'application/json', 'x-webhook-secret': config.AVOMA_WEBHOOK_SECRET }, body: JSON.stringify(payload) }; }
 async function waitFor(predicate, timeout = 2000) {
   const end = Date.now() + timeout;
   while (Date.now() < end) { if (predicate()) return; await new Promise((r) => setTimeout(r, 15)); }

@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>FollowPilot</title><link rel="stylesheet" href="/assets/styles.css">
+  <title>FollowPilot</title><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/settings.css"><style>.integration-strip{grid-template-columns:repeat(6,1fr)}@media(max-width:760px){.integration-strip{grid-template-columns:1fr 1fr}}</style>
 </head>
 <body>
-  <header class="topbar"><a class="brand" href="/"><span class="logo">F</span><span>FollowPilot</span></a><div class="live"><i></i> Agent online</div></header>
+  <header class="topbar"><a class="brand" href="/"><span class="logo">F</span><span>FollowPilot</span></a><nav class="app-nav"><button class="nav-button active" data-tab="overview">Overview</button><button class="nav-button" data-tab="settings">Settings</button></nav><div class="live"><i></i> Agent online</div></header>
   <main class="shell">
+    <div id="overview-panel" class="tab-panel active">
     <section class="hero">
       <div><p class="eyebrow">POST-MEETING AGENT</p><h1>Every follow-up,<br><em>ready for review.</em></h1><p class="lede">One webhook turns meeting notes into specific, human-approved Outlook emails—without losing the AE’s voice or control.</p></div>
       <div class="hero-stat"><span id="review-count">0</span><small>waiting for review</small></div>
@@ -29,11 +30,61 @@
       <div><p class="eyebrow">GO LIVE</p><h2>Four connections.<br>One smooth handoff.</h2><p class="muted">The dashboard automatically detects which services are ready. Keep demo mode on while you test.</p></div>
       <ol>
         <li><span>01</span><div><strong>Meeting source</strong><p>Add the webhook URL in Avoma and use the shared secret.</p></div></li>
-        <li><span>02</span><div><strong>Draft intelligence</strong><p>Add your OpenAI key and customize tone and template in environment settings.</p></div></li>
+        <li><span>02</span><div><strong>Draft intelligence</strong><p>Add your OpenAI key and customize tone and template in Settings.</p></div></li>
         <li><span>03</span><div><strong>Human review</strong><p>Connect a Slack app and map each AE email to their Slack user ID.</p></div></li>
         <li><span>04</span><div><strong>Personal sending</strong><p>Connect each AE’s Microsoft account below.</p><form id="connect-form"><input id="ae-email" type="email" placeholder="ae@yourcompany.com" required><button>Connect Outlook</button></form><div id="account-list"></div></div></li>
       </ol>
     </section>
+    </div>
+
+    <div id="settings-panel" class="tab-panel">
+      <section class="settings-hero"><div><p class="eyebrow">CONTROL CENTER</p><h1>Connect your workflow.</h1><p class="lede">Add credentials once. FollowPilot encrypts them in its persistent database and uses them immediately—no server-file editing required.</p></div><label class="mode-switch"><input id="live-mode" type="checkbox"><span></span><div><strong>Live mode</strong><small id="mode-description">Demo data only</small></div></label></section>
+      <form id="settings-form">
+        <section class="settings-section"><div class="settings-title"><span>01</span><div><h2>Workspace</h2><p>Public address, security, and meeting rules.</p></div></div><div class="settings-card form-grid">
+          <label class="wide">Public app URL<input name="APP_BASE_URL" type="url" placeholder="https://followup.yourdomain.com"><small>Use the subdomain pointing to this VPS.</small></label>
+          <label>Dashboard password<input name="ADMIN_PASSWORD" type="password" autocomplete="new-password" placeholder="Set or replace password"><small>Leave blank to keep the saved password.</small></label>
+          <label>Internal company domains<input name="INTERNAL_DOMAINS" placeholder="yourcompany.com, secondcompany.com"><small>Meetings containing only these domains are ignored.</small></label>
+        </div></section>
+
+        <section class="settings-section"><div class="settings-title"><span>02</span><div><h2>Avoma</h2><p>Receive completed meeting notes.</p></div></div><div class="settings-card form-grid">
+          <label>Avoma API key<input name="AVOMA_API_KEY" type="password" data-secret placeholder="Paste API key"></label>
+          <label>Avoma API URL<input name="AVOMA_API_BASE_URL" type="url"></label>
+          <label class="wide">Webhook secret<input name="AVOMA_WEBHOOK_SECRET" type="password" data-secret placeholder="Automatically generated"><small>The webhook URL above updates after saving.</small></label>
+        </div></section>
+
+        <section class="settings-section"><div class="settings-title"><span>03</span><div><h2>OpenAI & writing style</h2><p>Control how grounded follow-ups are written.</p></div></div><div class="settings-card form-grid">
+          <label>OpenAI API key<input name="OPENAI_API_KEY" type="password" data-secret placeholder="sk-..."></label>
+          <label>Model<input name="OPENAI_MODEL" placeholder="gpt-4.1-mini"></label>
+          <label>Tone<input name="EMAIL_TONE"></label>
+          <label>Maximum words<input name="EMAIL_MAX_WORDS" type="number" min="50" max="800"></label>
+          <label class="wide">Email template guidance<textarea name="EMAIL_TEMPLATE" rows="5"></textarea><small>Describe the structure, CTA, sign-off, and personalization rules.</small></label>
+          <label class="wide">Default CC addresses<input name="DEFAULT_CC" placeholder="manager@company.com, ops@company.com"></label>
+        </div></section>
+
+        <section class="settings-section"><div class="settings-title"><span>04</span><div><h2>Slack review</h2><p>Route every draft to the correct AE.</p></div></div><div class="settings-card form-grid">
+          <label>Bot token<input name="SLACK_BOT_TOKEN" type="password" data-secret placeholder="xoxb-..."></label>
+          <label>Signing secret<input name="SLACK_SIGNING_SECRET" type="password" data-secret></label>
+          <label>Fallback channel ID<input name="SLACK_FALLBACK_CHANNEL" placeholder="C0123456789"></label>
+          <label class="wide">AE email → Slack user mapping<textarea name="AE_SLACK_MAP" rows="4" spellcheck="false" placeholder='{"ae@company.com":"U0123456789"}'></textarea></label>
+          <div class="endpoint wide"><span>Slack interaction URL</span><code id="slack-url">Save your public app URL first</code></div>
+        </div></section>
+
+        <section class="settings-section"><div class="settings-title"><span>05</span><div><h2>Microsoft Outlook</h2><p>Send from each AE’s own mailbox.</p></div></div><div class="settings-card form-grid">
+          <label>Application client ID<input name="MICROSOFT_CLIENT_ID"></label>
+          <label>Client secret<input name="MICROSOFT_CLIENT_SECRET" type="password" data-secret></label>
+          <label>Tenant ID<input name="MICROSOFT_TENANT_ID" placeholder="common"></label>
+          <label>Redirect URL<input name="MICROSOFT_REDIRECT_URI" type="url"></label>
+          <div class="wide connect-box"><div><strong>Connect an AE mailbox</strong><p>Save Microsoft settings first, then connect each sender once.</p></div><div class="connect-row"><input id="settings-ae-email" type="email" placeholder="ae@yourcompany.com"><button type="button" id="settings-connect-outlook">Connect Outlook</button></div><div id="settings-account-list"></div></div>
+        </div></section>
+
+        <section class="settings-section"><div class="settings-title"><span>06</span><div><h2>HubSpot <em>optional</em></h2><p>Log successfully sent emails against contacts.</p></div></div><div class="settings-card form-grid">
+          <label class="check-label wide"><input name="HUBSPOT_ENABLED" type="checkbox"><span>Log sent emails to HubSpot</span></label>
+          <label class="wide">Private app access token<input name="HUBSPOT_ACCESS_TOKEN" type="password" data-secret></label>
+        </div></section>
+
+        <div class="save-bar"><div><strong id="save-state">Settings are encrypted at rest</strong><small>Changes take effect immediately.</small></div><button type="submit" class="primary" id="save-settings">Save settings</button></div>
+      </form>
+    </div>
   </main>
   <dialog id="detail-dialog"><button class="dialog-close" aria-label="Close">×</button><div id="detail-content"></div></dialog>
   <div id="toast" role="status"></div>

@@ -14,6 +14,7 @@ FollowPilot exposes a reusable webhook, enriches completed Avoma meetings, ignor
 - Slack file picker support for Outlook attachments
 - Per-AE Microsoft OAuth and Graph `sendMail` integration
 - Audit timeline, retry endpoint, dashboard, readiness checks, and Docker deployment
+- In-app Settings tab with encrypted API credentials and instant demo/live switching
 
 ## Quick start
 
@@ -23,7 +24,7 @@ FollowPilot exposes a reusable webhook, enriches completed Avoma meetings, ignor
 4. Open `http://localhost:3000`.
 5. For local webhook testing, expose port 3000 using a secure tunnel and paste the displayed webhook URL into Avoma.
 
-The app runs in demo mode until service credentials are added. In demo mode, a sample meeting can be submitted from the dashboard and a realistic draft is created without contacting third-party APIs.
+The app runs in demo mode until service credentials are added in the dashboard's **Settings** tab. In demo mode, a sample meeting can be submitted and a realistic draft is created without contacting third-party APIs.
 
 See [SETUP.md](./SETUP.md) for the complete Avoma, Slack, Microsoft, OpenAI, and deployment checklist.
 
@@ -38,6 +39,8 @@ npm start
 ## Deployment
 
 Build with the included `Dockerfile`. A ready-to-use `render.yaml` is included; any Docker host with a persistent disk will work. For multiple app replicas, switch the storage adapter to a managed PostgreSQL database before scaling horizontally.
+
+For a VPS, run `docker compose -f docker-compose.vps.yml up -d --build`, route a subdomain to local port `3100`, then complete every provider connection in **Settings**. API credentials are AES-256-GCM encrypted in the persistent `followpilot_data` volume; a unique master key is generated automatically.
 
 ## Safety model
 

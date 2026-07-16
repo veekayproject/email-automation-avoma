@@ -7,6 +7,9 @@ import { acceptWebhook, approveAndSend, cancelMeeting, editDraft, processMeeting
 import { demoMeeting } from './services/meeting.js';
 import { createMicrosoftAuthUrl, completeMicrosoftAuth, listMicrosoftAccounts } from './services/microsoft.js';
 import { downloadSlackFiles, extractModalValues, openEditModal, verifySlackRequest } from './services/slack.js';
+import { loadStoredSettings, publicSettings, saveSettings, webhookUrl } from './settings.js';
+
+loadStoredSettings();
 
 export const app = express();
 app.disable('x-powered-by');
@@ -56,9 +59,16 @@ app.post('/api/demo', adminAuth, async (_req, res) => {
   catch (error) { res.status(400).json({ error: error.message }); }
 });
 app.get('/api/config', adminAuth, (_req, res) => res.json({
-  appBaseUrl: config.APP_BASE_URL, webhookUrl: `${config.APP_BASE_URL}/api/webhooks/avoma?secret=${encodeURIComponent(config.AVOMA_WEBHOOK_SECRET)}`,
+  appBaseUrl: config.APP_BASE_URL, webhookUrl: webhookUrl(),
   integrations: integrationStatus(), internalDomains: config.internalDomains, accounts: listMicrosoftAccounts()
 }));
+app.get('/api/settings', adminAuth, (_req, res) => res.json({ ...publicSettings(), accounts: listMicrosoftAccounts() }));
+app.post('/api/settings', adminAuth, (req, res) => {
+  try {
+    const result = saveSettings(req.body, 'dashboard');
+    res.json({ ...result, accounts: listMicrosoftAccounts(), reauthenticate: Boolean(req.body.ADMIN_PASSWORD) });
+  } catch (error) { res.status(400).json({ error: error.message }); }
+});
 app.get('/api/meetings', adminAuth, (_req, res) => res.json({ meetings: listMeetings() }));
 app.get('/api/meetings/:id', adminAuth, (req, res) => {
   const meeting = getMeeting(req.params.id); if (!meeting) return res.status(404).json({ error: 'Meeting not found' });

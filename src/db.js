@@ -69,6 +69,12 @@ db.exec(`
     details_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    is_secret INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL
+  );
   CREATE INDEX IF NOT EXISTS idx_meetings_status ON meetings(status);
   CREATE INDEX IF NOT EXISTS idx_audit_meeting ON audit_logs(meeting_id);
 `);
