@@ -1,0 +1,26 @@
+services:
+  followpilot:
+    environment:
+      APP_BASE_URL: https://n8n.srv1024208.hstgr.cloud/followpilot
+      BASE_PATH: /followpilot
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=root_default
+      - traefik.http.routers.followpilot.rule=Host(`n8n.srv1024208.hstgr.cloud`) && PathPrefix(`/followpilot`)
+      - traefik.http.routers.followpilot.entrypoints=websecure
+      - traefik.http.routers.followpilot.tls=true
+      - traefik.http.routers.followpilot.tls.certresolver=mytlschallenge
+      - traefik.http.routers.followpilot.priority=100
+      - traefik.http.routers.followpilot.middlewares=followpilot-add-slash,followpilot-strip
+      - traefik.http.middlewares.followpilot-add-slash.redirectregex.regex=^https?://([^/]+)/followpilot$
+      - traefik.http.middlewares.followpilot-add-slash.redirectregex.replacement=https://$${1}/followpilot/
+      - traefik.http.middlewares.followpilot-add-slash.redirectregex.permanent=true
+      - traefik.http.middlewares.followpilot-strip.stripprefix.prefixes=/followpilot
+      - traefik.http.services.followpilot.loadbalancer.server.port=3000
+    networks:
+      - default
+      - root_default
+
+networks:
+  root_default:
+    external: true

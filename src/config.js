@@ -4,6 +4,7 @@ import { z } from 'zod';
 const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   APP_BASE_URL: z.string().url().default('http://localhost:3000'),
+  BASE_PATH: z.string().default(''),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   ADMIN_PASSWORD: z.string().default(''),
   APP_ENCRYPTION_KEY: z.string().default(''),
@@ -43,6 +44,7 @@ const parseJson = (value, fallback) => {
 
 export const config = {
   ...raw,
+  basePath: normalizeBasePath(raw.BASE_PATH),
   demoMode: raw.DEMO_MODE === 'true',
   hubspotEnabled: raw.HUBSPOT_ENABLED === 'true',
   internalDomains: raw.INTERNAL_DOMAINS.split(',').map((v) => v.trim().toLowerCase()).filter(Boolean),
@@ -55,6 +57,7 @@ export function applyRuntimeConfig(values = {}) {
     if (value !== undefined && key in config) config[key] = value;
   }
   config.demoMode = String(config.DEMO_MODE) === 'true';
+  config.basePath = normalizeBasePath(config.BASE_PATH);
   config.hubspotEnabled = String(config.HUBSPOT_ENABLED) === 'true';
   config.internalDomains = String(config.INTERNAL_DOMAINS || '').split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
   config.defaultCc = String(config.DEFAULT_CC || '').split(',').map((v) => v.trim()).filter(Boolean);
@@ -62,6 +65,12 @@ export function applyRuntimeConfig(values = {}) {
   config.webhookFieldMap = parseJson(String(config.WEBHOOK_FIELD_MAP || '{}'), {});
   config.EMAIL_MAX_WORDS = Number(config.EMAIL_MAX_WORDS) || 220;
   return config;
+}
+
+function normalizeBasePath(value) {
+  const path = String(value || '').trim();
+  if (!path || path === '/') return '';
+  return `/${path.replace(/^\/+|\/+$/g, '')}`;
 }
 
 export const integrationStatus = () => ({
