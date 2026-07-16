@@ -63,7 +63,14 @@
           <label class="wide">Webhook field mapping<textarea name="WEBHOOK_FIELD_MAP" rows="12" spellcheck="false"></textarea><small>Map FollowPilot fields to dot-paths in the exact payload Avoma sends. Verify this in Test Lab.</small></label>
         </div></section>
 
-        <section class="settings-section"><div class="settings-title"><span>03</span><div><h2>OpenAI & writing style</h2><p>Control how grounded follow-ups are written.</p></div></div><div class="settings-card form-grid">
+        <section class="settings-section"><div class="settings-title"><span>03</span><div><h2>Automation filters</h2><p>Choose which Avoma meetings are allowed to create drafts.</p></div></div><div class="settings-card form-grid">
+          <label class="check-label wide"><input name="AUTOMATION_FILTERS_ENABLED" type="checkbox"><span>Enable filters before OpenAI and Slack</span></label>
+          <label class="wide">Allowed AE email addresses<textarea name="FILTER_ALLOWED_AE_EMAILS" rows="4" spellcheck="false" placeholder="shivang@vieu.com&#10;rahul@vieu.com"></textarea><small>One email per line or comma-separated. Leave blank to allow every organizer.</small></label>
+          <label class="wide">Meeting title must contain<textarea name="FILTER_TITLE_CONTAINS" rows="3" spellcheck="false" placeholder="discovery"></textarea><small>One phrase per line or comma-separated. Matching is case-insensitive and any phrase can match. Leave blank to allow every title.</small></label>
+          <div class="endpoint wide"><span>How filters work</span><code>Configured AE filter AND configured title filter must both pass. Non-matching meetings are marked Ignored before any OpenAI or Slack call.</code></div>
+        </div></section>
+
+        <section class="settings-section"><div class="settings-title"><span>04</span><div><h2>OpenAI & writing style</h2><p>Control how grounded follow-ups are written.</p></div></div><div class="settings-card form-grid">
           <label>OpenAI API key<input name="OPENAI_API_KEY" type="password" data-secret placeholder="sk-..."></label>
           <label>Model<div class="model-row"><input name="OPENAI_MODEL" list="model-options" placeholder="gpt-5.6-luna"><button type="button" id="refresh-models">Load available models</button></div><datalist id="model-options"><option value="gpt-5.6-luna"></option><option value="gpt-5.6-terra"></option><option value="gpt-5.6"></option><option value="gpt-4.1-mini"></option></datalist><small id="model-help">Luna is recommended for efficient high-volume follow-ups.</small></label>
           <label>Tone<input name="EMAIL_TONE"></label>
@@ -75,7 +82,7 @@
           <label class="wide">Default CC addresses<input name="DEFAULT_CC" placeholder="manager@company.com, ops@company.com"></label>
         </div></section>
 
-        <section class="settings-section"><div class="settings-title"><span>04</span><div><h2>Slack review</h2><p>Route every draft to the correct AE.</p></div></div><div class="settings-card form-grid">
+        <section class="settings-section"><div class="settings-title"><span>05</span><div><h2>Slack review</h2><p>Route every draft to the correct AE.</p></div></div><div class="settings-card form-grid">
           <label>Bot token<input name="SLACK_BOT_TOKEN" type="password" data-secret placeholder="xoxb-..."></label>
           <label>Signing secret<input name="SLACK_SIGNING_SECRET" type="password" data-secret></label>
           <label>Fallback channel ID<input name="SLACK_FALLBACK_CHANNEL" placeholder="C0123456789"></label>
@@ -83,7 +90,7 @@
           <div class="endpoint wide"><span>Slack interaction URL</span><code id="slack-url">Save your public app URL first</code></div>
         </div></section>
 
-        <section class="settings-section"><div class="settings-title"><span>05</span><div><h2>Microsoft Outlook</h2><p>Send from each AE’s own mailbox.</p></div></div><div class="settings-card form-grid">
+        <section class="settings-section"><div class="settings-title"><span>06</span><div><h2>Microsoft Outlook</h2><p>Send from each AE’s own mailbox.</p></div></div><div class="settings-card form-grid">
           <label>Application client ID<input name="MICROSOFT_CLIENT_ID"></label>
           <label>Client secret<input name="MICROSOFT_CLIENT_SECRET" type="password" data-secret></label>
           <label>Tenant ID<input name="MICROSOFT_TENANT_ID" placeholder="common"></label>
@@ -91,7 +98,7 @@
           <div class="wide connect-box"><div><strong>Connect an AE mailbox</strong><p>Save Microsoft settings first, then connect each sender once.</p></div><div class="connect-row"><input id="settings-ae-email" type="email" placeholder="ae@yourcompany.com"><button type="button" id="settings-connect-outlook">Connect Outlook</button></div><div id="settings-account-list"></div></div>
         </div></section>
 
-        <section class="settings-section"><div class="settings-title"><span>06</span><div><h2>HubSpot <em>optional</em></h2><p>Log successfully sent emails against contacts.</p></div></div><div class="settings-card form-grid">
+        <section class="settings-section"><div class="settings-title"><span>07</span><div><h2>HubSpot <em>optional</em></h2><p>Log successfully sent emails against contacts.</p></div></div><div class="settings-card form-grid">
           <label class="check-label wide"><input name="HUBSPOT_ENABLED" type="checkbox"><span>Log sent emails to HubSpot</span></label>
           <label class="wide">Private app access token<input name="HUBSPOT_ACCESS_TOKEN" type="password" data-secret></label>
         </div></section>
