@@ -15,6 +15,8 @@ FollowPilot exposes a reusable webhook, enriches completed Avoma meetings, ignor
 - Per-AE Microsoft OAuth and Graph `sendMail` integration
 - Audit timeline, retry endpoint, dashboard, readiness checks, and Docker deployment
 - In-app Settings tab with encrypted API credentials and instant demo/live switching
+- Separate pricing/no-pricing email guidance with deterministic template routing
+- AI model picker and a Test Lab for payload mapping, draft editing, and Slack review tests
 
 ## Quick start
 
@@ -24,7 +26,9 @@ FollowPilot exposes a reusable webhook, enriches completed Avoma meetings, ignor
 4. Open `http://localhost:3000`.
 5. For local webhook testing, expose port 3000 using a secure tunnel and paste the displayed webhook URL into Avoma.
 
-The app runs in demo mode until service credentials are added in the dashboard's **Settings** tab. In demo mode, a sample meeting can be submitted and a realistic draft is created without contacting third-party APIs.
+The app runs in demo mode until service credentials are added in the dashboard's **Settings** tab. In demo mode, use **Test Lab** to paste an Avoma webhook, inspect every mapped field, confirm which template was selected, and edit the resulting message without contacting third-party APIs.
+
+An Avoma API key is optional. It is only used as a fallback when the webhook contains a meeting ID but omits the summary, transcript, or other details. A complete webhook payload is processed directly.
 
 See [SETUP.md](./SETUP.md) for the complete Avoma, Slack, Microsoft, OpenAI, and deployment checklist.
 

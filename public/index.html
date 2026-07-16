@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>FollowPilot</title><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/settings.css"><style>.integration-strip{grid-template-columns:repeat(6,1fr)}@media(max-width:760px){.integration-strip{grid-template-columns:1fr 1fr}}</style>
+  <title>FollowPilot</title><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/settings.css"><link rel="stylesheet" href="/assets/test-lab.css"><style>.integration-strip{grid-template-columns:repeat(6,1fr)}@media(max-width:760px){.integration-strip{grid-template-columns:1fr 1fr}}</style>
 </head>
 <body>
-  <header class="topbar"><a class="brand" href="/"><span class="logo">F</span><span>FollowPilot</span></a><nav class="app-nav"><button class="nav-button active" data-tab="overview">Overview</button><button class="nav-button" data-tab="settings">Settings</button></nav><div class="live"><i></i> Agent online</div></header>
+  <header class="topbar"><a class="brand" href="/"><span class="logo">F</span><span>FollowPilot</span></a><nav class="app-nav"><button class="nav-button active" data-tab="overview">Overview</button><button class="nav-button" data-tab="test">Test Lab</button><button class="nav-button" data-tab="settings">Settings</button></nav><div class="live"><i></i> Agent online</div></header>
   <main class="shell">
     <div id="overview-panel" class="tab-panel active">
     <section class="hero">
@@ -37,6 +37,16 @@
     </section>
     </div>
 
+    <div id="test-panel" class="tab-panel">
+      <section class="test-hero"><div><p class="eyebrow">SAFE WORKBENCH</p><h1>Map it. Draft it. Edit it.</h1><p class="lede">Paste the exact Avoma webhook payload and see every mapped field, the selected template, and the editable Slack draft before anything can send.</p></div><div class="test-safety"><strong>No automatic email</strong><small>Slack tests still require the Send Email approval button.</small></div></section>
+      <section class="test-grid">
+        <div class="test-column"><div class="test-card"><div class="card-heading"><div><p class="eyebrow">1 · PAYLOAD</p><h2>Avoma webhook</h2></div><div class="preset-buttons"><button type="button" id="preset-no-pricing">No pricing</button><button type="button" id="preset-pricing">Pricing discussed</button></div></div><textarea id="test-payload" rows="24" spellcheck="false"></textarea><button type="button" class="primary wide-button" id="generate-test">Map payload & generate preview</button></div>
+        <div class="test-card"><p class="eyebrow">2 · FIELD MAPPING</p><h2>What the agent understood</h2><div id="mapping-results" class="mapping-results"><p class="muted">Run the payload to inspect the mapping.</p></div></div></div>
+        <div class="test-column"><div class="test-card"><div class="card-heading"><div><p class="eyebrow">3 · TEMPLATE ROUTER</p><h2 id="template-result">Waiting for payload</h2></div><span id="model-result" class="model-chip">No model call</span></div><div id="pricing-evidence" class="decision-box">Pricing is included only when explicit evidence is found.</div></div>
+        <div class="test-card"><p class="eyebrow">4 · EDITABLE REVIEW</p><h2>Slack-style draft</h2><div class="slack-preview"><div class="slack-avatar">F</div><div><strong>FollowPilot</strong><small> APP</small><p>Follow-up draft ready for AE review</p></div></div><div class="test-draft-form"><label>To<input id="test-recipient" type="email"></label><div class="row"><label>CC<input id="test-cc"></label><label>BCC<input id="test-bcc"></label></div><label>Subject<input id="test-subject"></label><label>Email body<textarea id="test-body" rows="18"></textarea></label></div><div class="edit-proof"><span>✓</span><div><strong>Every field above is editable</strong><small>The same To, CC, BCC, subject, body, and attachment controls appear in the Slack modal.</small></div></div><button type="button" id="send-slack-test" disabled>Send editable test to Slack</button><small class="test-warning">Available after Slack is connected and Live mode is enabled. Use your own email as the test recipient.</small></div></div>
+      </section>
+    </div>
+
     <div id="settings-panel" class="tab-panel">
       <section class="settings-hero"><div><p class="eyebrow">CONTROL CENTER</p><h1>Connect your workflow.</h1><p class="lede">Add credentials once. FollowPilot encrypts them in its persistent database and uses them immediately—no server-file editing required.</p></div><label class="mode-switch"><input id="live-mode" type="checkbox"><span></span><div><strong>Live mode</strong><small id="mode-description">Demo data only</small></div></label></section>
       <form id="settings-form">
@@ -47,17 +57,21 @@
         </div></section>
 
         <section class="settings-section"><div class="settings-title"><span>02</span><div><h2>Avoma</h2><p>Receive completed meeting notes.</p></div></div><div class="settings-card form-grid">
-          <label>Avoma API key<input name="AVOMA_API_KEY" type="password" data-secret placeholder="Paste API key"></label>
-          <label>Avoma API URL<input name="AVOMA_API_BASE_URL" type="url"></label>
+          <label>Avoma API key <em>optional</em><input name="AVOMA_API_KEY" type="password" data-secret placeholder="Only needed for ID-only webhooks"><small>Leave blank when Avoma sends notes, summary, participants, and actions in the webhook.</small></label>
+          <label>Avoma API URL <em>optional</em><input name="AVOMA_API_BASE_URL" type="url"><small>Used only to enrich incomplete webhook payloads.</small></label>
           <label class="wide">Webhook secret<input name="AVOMA_WEBHOOK_SECRET" type="password" data-secret placeholder="Automatically generated"><small>The webhook URL above updates after saving.</small></label>
+          <label class="wide">Webhook field mapping<textarea name="WEBHOOK_FIELD_MAP" rows="12" spellcheck="false"></textarea><small>Map FollowPilot fields to dot-paths in the exact payload Avoma sends. Verify this in Test Lab.</small></label>
         </div></section>
 
         <section class="settings-section"><div class="settings-title"><span>03</span><div><h2>OpenAI & writing style</h2><p>Control how grounded follow-ups are written.</p></div></div><div class="settings-card form-grid">
           <label>OpenAI API key<input name="OPENAI_API_KEY" type="password" data-secret placeholder="sk-..."></label>
-          <label>Model<input name="OPENAI_MODEL" placeholder="gpt-4.1-mini"></label>
+          <label>Model<div class="model-row"><input name="OPENAI_MODEL" list="model-options" placeholder="gpt-5.6-luna"><button type="button" id="refresh-models">Load available models</button></div><datalist id="model-options"><option value="gpt-5.6-luna"></option><option value="gpt-5.6-terra"></option><option value="gpt-5.6"></option><option value="gpt-4.1-mini"></option></datalist><small id="model-help">Luna is recommended for efficient high-volume follow-ups.</small></label>
           <label>Tone<input name="EMAIL_TONE"></label>
           <label>Maximum words<input name="EMAIL_MAX_WORDS" type="number" min="50" max="800"></label>
-          <label class="wide">Email template guidance<textarea name="EMAIL_TEMPLATE" rows="5"></textarea><small>Describe the structure, CTA, sign-off, and personalization rules.</small></label>
+          <label class="wide">General email rules<textarea name="EMAIL_TEMPLATE" rows="4"></textarea><small>Voice, personalization, CTA, sign-off, and rules common to every email.</small></label>
+          <label class="wide template-no-pricing">Template: pricing not discussed<textarea name="EMAIL_TEMPLATE_NO_PRICING" rows="9"></textarea><small>Based on your Calliope example. Pricing is forbidden in this path.</small></label>
+          <label class="wide template-pricing">Template: pricing discussed<textarea name="EMAIL_TEMPLATE_PRICING" rows="9"></textarea><small>Based on your Gail example. Used only with explicit pricing evidence.</small></label>
+          <label class="wide template-pricing">Approved pricing and onboarding block<textarea name="APPROVED_PRICING_TEXT" rows="11"></textarea><small>The agent can use this block only when pricing was explicitly discussed.</small></label>
           <label class="wide">Default CC addresses<input name="DEFAULT_CC" placeholder="manager@company.com, ops@company.com"></label>
         </div></section>
 

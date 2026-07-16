@@ -17,29 +17,46 @@ export function normalizeWebhook(payload) {
   const ownerEmail = (first(root.owner_email, emailOf(owner), payload.owner_email) || '').toLowerCase();
   const external = participants.find((p) => p.email && !isInternalEmail(p.email, ownerEmail));
   return {
-    id: String(first(root.id, root.meeting_id, root.uuid, payload.meeting_id, payload.id, '')),
+    id: String(first(mapped(payload, 'id'), root.id, root.meeting_id, root.uuid, payload.meeting_id, payload.id, '')),
     source: first(payload.source, 'avoma'),
     event: String(first(payload.event, payload.event_type, payload.type, 'meeting.completed')).toLowerCase(),
-    title: first(root.title, root.subject, root.name, 'Untitled meeting'),
+    title: first(mapped(payload, 'title'), root.title, root.subject, root.name, 'Untitled meeting'),
     meetingDate: first(root.start_at, root.start_time, root.started_at, root.meeting_date, root.date),
-    ownerName: first(root.owner_name, nameOf(owner)),
-    ownerEmail,
-    prospectName: first(root.prospect_name, external?.name),
-    prospectCompany: first(root.company_name, root.account?.name, external?.company),
-    recipientEmail: first(root.recipient_email, external?.email),
-    meetingUrl: first(root.url, root.web_url, root.avoma_url, root.recording_url),
-    crmUrl: first(root.crm_url, root.deal?.url, root.contact?.url),
+    ownerName: first(mapped(payload, 'owner_name'), root.owner_name, nameOf(owner)),
+    ownerEmail: first(mapped(payload, 'owner_email'), ownerEmail),
+    prospectName: first(mapped(payload, 'prospect_name'), root.prospect_name, external?.name),
+    prospectCompany: first(mapped(payload, 'company'), root.company_name, root.account?.name, external?.company),
+    recipientEmail: first(mapped(payload, 'recipient_email'), root.recipient_email, external?.email),
+    meetingUrl: first(mapped(payload, 'meeting_url'), root.url, root.web_url, root.avoma_url, root.recording_url),
+    crmUrl: first(mapped(payload, 'crm_url'), root.crm_url, root.deal?.url, root.contact?.url),
     hubspotContactId: first(root.hubspot_contact_id, root.contact?.id, root.crm?.contact_id),
     hubspotCompanyId: first(root.hubspot_company_id, root.account?.id, root.crm?.company_id),
     hubspotDealId: first(root.hubspot_deal_id, root.deal?.id, root.crm?.deal_id),
-    participants,
-    summary: first(root.summary, root.ai_summary, root.overview, payload.summary),
-    notes: first(root.notes, root.ai_notes, root.meeting_notes, payload.notes),
-    transcript: first(root.transcript, root.transcript_text, payload.transcript),
-    actionItems: first(root.action_items, root.actionItems, payload.action_items, []),
+    participants: Array.isArray(mapped(payload, 'participants')) ? mapped(payload, 'participants').map((p) => ({ name:nameOf(p)||'Unknown participant', email:(emailOf(p)||'').toLowerCase(), company:first(p.company,p.organization?.name,p.company_name), isHost:Boolean(first(p.is_host,p.isHost,p.organizer,false)) })) : participants,
+    summary: first(mapped(payload, 'summary'), root.summary, root.ai_summary, root.overview, payload.summary),
+    notes: first(mapped(payload, 'notes'), root.notes, root.ai_notes, root.meeting_notes, payload.notes),
+    transcript: first(mapped(payload, 'transcript'), root.transcript, root.transcript_text, payload.transcript),
+    actionItems: first(mapped(payload, 'action_items'), root.action_items, root.actionItems, payload.action_items, []),
     keyTopics: first(root.key_topics, root.keyTopics, root.topics, []),
     raw: payload
   };
+}
+
+export function mappingSummary(meeting) {
+  return {
+    meeting_id: meeting.id, title: meeting.title, owner_email: meeting.ownerEmail,
+    prospect_name: meeting.prospectName, recipient_email: meeting.recipientEmail,
+    company: meeting.prospectCompany, summary: meeting.summary, notes: meeting.notes,
+    transcript: meeting.transcript ? `${String(meeting.transcript).slice(0, 180)}${String(meeting.transcript).length > 180 ? '…' : ''}` : '',
+    action_items: meeting.actionItems, meeting_url: meeting.meetingUrl, crm_url: meeting.crmUrl,
+    participant_count: meeting.participants.length
+  };
+}
+
+function mapped(payload, key) {
+  const path = config.webhookFieldMap?.[key];
+  if (!path) return undefined;
+  return String(path).split('.').reduce((value, part) => value?.[part], payload);
 }
 
 export function isInternalEmail(email, ownerEmail = '') {

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { app } from '../src/app.js';
 import { config } from '../src/config.js';
 import { approveAndSend } from '../src/services/processor.js';
+import { detectPricingDiscussion } from '../src/services/generator.js';
+import { normalizeWebhook } from '../src/services/meeting.js';
 import { db, getDraftByMeeting, getMeeting } from '../src/db.js';
 
 let server; let base;
@@ -60,6 +62,37 @@ test('dashboard settings persist secrets without returning plaintext', async () 
   assert.equal(JSON.stringify(settings).includes('test-secret-key'), false);
   const stored = db.prepare('SELECT value FROM app_settings WHERE key=?').get('OPENAI_API_KEY');
   assert.equal(stored.value.includes('test-secret-key'), false);
+});
+
+test('pricing router ignores explicit no-pricing language and detects actual commercials', () => {
+  assert.deepEqual(detectPricingDiscussion({ notes: 'Pricing was not discussed in this meeting.' }), { discussed: false, evidence: [] });
+  const priced = detectPricingDiscussion({ summary: 'We discussed Vieu Core at $12.5K/year for 1,000 accounts.' });
+  assert.equal(priced.discussed, true);
+  assert.match(priced.evidence[0], /12\.5K\/year/);
+});
+
+test('custom webhook paths map a non-Avoma payload', () => {
+  const previous = config.webhookFieldMap;
+  config.webhookFieldMap = { id: 'call.uuid', recipient_email: 'call.customer.email', summary: 'call.ai.summary' };
+  const meeting = normalizeWebhook({ event: 'call.completed', call: { uuid: 'mapped-1', customer: { email: 'buyer@example.com' }, ai: { summary: 'Mapped summary' } } });
+  assert.equal(meeting.id, 'mapped-1');
+  assert.equal(meeting.recipientEmail, 'buyer@example.com');
+  assert.equal(meeting.summary, 'Mapped summary');
+  config.webhookFieldMap = previous;
+});
+
+test('Test Lab returns mapped fields and an editable conditional draft', async () => {
+  const payload = externalMeeting('meeting-preview');
+  payload.data.meeting.notes = 'Pricing was not discussed.';
+  const response = await fetch(`${base}/api/test/preview`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ payload })
+  });
+  assert.equal(response.status, 200);
+  const preview = await response.json();
+  assert.equal(preview.mapping.recipient_email, 'customer@outside.test');
+  assert.equal(preview.pricing.discussed, false);
+  assert.equal(preview.draft.template_type, 'no_pricing');
+  assert.match(preview.draft.body, /Hi Casey/);
 });
 
 function externalMeeting(id) {

@@ -95,6 +95,21 @@ export async function cancelMeeting(meetingId, actor) {
   const draft = getDraftByMeeting(meetingId); if (draft) await updateReview(getMeeting(meetingId), draft);
 }
 
+export async function createSlackTestReview(meetingInput, draftInput, actor = 'dashboard-test') {
+  const meetingId = `test-${crypto.randomUUID()}`;
+  const meeting = { ...meetingInput, id: meetingId, source: 'test-lab', title: `[TEST] ${meetingInput.title || 'Follow-up review'}`, raw: { test: true, normalized: meetingInput } };
+  createMeeting(meeting);
+  const draft = createDraft({ id: crypto.randomUUID(), meetingId, subject: draftInput.subject, body: draftInput.body,
+    recipient: draftInput.recipient, cc: draftInput.cc || [], bcc: draftInput.bcc || [], reviewToken: randomToken(),
+    generation: { model: config.OPENAI_MODEL, template_type: draftInput.template_type, test: true } });
+  updateMeeting(meetingId, { status: 'draft_created' });
+  const slack = await postReview(getMeeting(meetingId), draft);
+  updateDraft(meetingId, { slackChannel: slack.channel, slackTs: slack.ts });
+  updateMeeting(meetingId, { status: 'waiting_review', status_reason: 'Test Lab draft - review and edit before sending' });
+  audit(meetingId, 'test_review_created', { slackChannel: slack.channel }, actor);
+  return { meeting: getMeeting(meetingId), draft: getDraftByMeeting(meetingId) };
+}
+
 function fail(meetingId, event, error) {
   updateMeeting(meetingId, { status: 'failed', status_reason: error.message });
   audit(meetingId, event, { error: error.message });

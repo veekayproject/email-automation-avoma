@@ -12,9 +12,10 @@ const envSchema = z.object({
   AVOMA_API_KEY: z.string().default(''),
   AVOMA_API_BASE_URL: z.string().url().default('https://api.avoma.com/v1'),
   AVOMA_WEBHOOK_SECRET: z.string().default(''),
+  WEBHOOK_FIELD_MAP: z.string().default(''),
   INTERNAL_DOMAINS: z.string().default(''),
   OPENAI_API_KEY: z.string().default(''),
-  OPENAI_MODEL: z.string().default('gpt-4.1-mini'),
+  OPENAI_MODEL: z.string().default('gpt-5.6-luna'),
   SLACK_BOT_TOKEN: z.string().default(''),
   SLACK_SIGNING_SECRET: z.string().default(''),
   SLACK_FALLBACK_CHANNEL: z.string().default(''),
@@ -26,6 +27,9 @@ const envSchema = z.object({
   EMAIL_TONE: z.string().default('warm, concise, specific, and professional'),
   EMAIL_MAX_WORDS: z.coerce.number().min(50).max(800).default(220),
   EMAIL_TEMPLATE: z.string().default('Thank them briefly. Recap the most relevant needs and decisions. List clear next steps with owners. End with one natural call to action.'),
+  EMAIL_TEMPLATE_PRICING: z.string().default(''),
+  EMAIL_TEMPLATE_NO_PRICING: z.string().default(''),
+  APPROVED_PRICING_TEXT: z.string().default(''),
   DEFAULT_CC: z.string().default(''),
   HUBSPOT_ENABLED: z.string().default('false'),
   HUBSPOT_ACCESS_TOKEN: z.string().default(''),
@@ -55,6 +59,7 @@ export function applyRuntimeConfig(values = {}) {
   config.internalDomains = String(config.INTERNAL_DOMAINS || '').split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
   config.defaultCc = String(config.DEFAULT_CC || '').split(',').map((v) => v.trim()).filter(Boolean);
   config.aeSlackMap = parseJson(String(config.AE_SLACK_MAP || '{}'), {});
+  config.webhookFieldMap = parseJson(String(config.WEBHOOK_FIELD_MAP || '{}'), {});
   config.EMAIL_MAX_WORDS = Number(config.EMAIL_MAX_WORDS) || 220;
   return config;
 }

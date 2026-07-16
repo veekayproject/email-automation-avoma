@@ -1,6 +1,15 @@
 const $ = (selector) => document.querySelector(selector);
 let config;
 let settingsLoaded = false;
+let lastTestPayload = null;
+let lastTestDraft = null;
+
+const noPricingPayload = {
+  event:'meeting.analysis.ready', data:{ meeting:{ id:'test-no-pricing', title:'Calliope <> Vieu | Post Meeting', start_at:new Date().toISOString(), owner:{name:'Shivang Sood',email:'shivang@vieu.com'}, participants:[{name:'Shivang Sood',email:'shivang@vieu.com'},{name:'Craig',email:'craig@calliope.example',company:'Calliope'}], summary:'Discussed a custom demo and the information needed to configure target-account connections.', notes:'Craig will share ideal target-account criteria, important signals, and a list of introducers. Pricing was not discussed.', action_items:['Craig to share target account criteria and introducer LinkedIn URLs'], url:'https://app.avoma.com/meetings/example-no-pricing' } }
+};
+const pricingPayload = {
+  event:'meeting.analysis.ready', data:{ meeting:{ id:'test-pricing', title:'Gail <> Vieu | Post Meeting', start_at:new Date().toISOString(), owner:{name:'Shivang Sood',email:'shivang@vieu.com'}, participants:[{name:'Shivang Sood',email:'shivang@vieu.com'},{name:'Vlad',email:'vlad@gail.example',company:'Gail'}], summary:'Discussed the custom demo, Vieu Core pricing of $12.5K per year for 1000 accounts, and the onboarding plan.', notes:'Vlad will share the ICP persona, target-account criteria, and top introducers.', action_items:['Vlad to share ICP and introducer LinkedIn URLs'], url:'https://app.avoma.com/meetings/example-pricing' } }
+};
 
 async function load() {
   try {
@@ -40,6 +49,7 @@ document.querySelectorAll('.nav-button').forEach((button) => button.addEventList
   document.querySelectorAll('.nav-button').forEach((item) => item.classList.toggle('active', item === button));
   document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.toggle('active', panel.id === `${button.dataset.tab}-panel`));
   if (button.dataset.tab === 'settings' && !settingsLoaded) await loadSettings();
+  if (button.dataset.tab === 'test' && !$('#test-payload').value) setTestPayload(noPricingPayload);
 }));
 
 async function loadSettings() {
@@ -88,9 +98,56 @@ $('#settings-connect-outlook').addEventListener('click', () => {
   location.href = `/auth/microsoft/start?email=${encodeURIComponent(email)}`;
 });
 
+$('#refresh-models').addEventListener('click', async () => {
+  const button = $('#refresh-models'); button.disabled = true;
+  try {
+    const result = await api('/api/openai/models');
+    $('#model-options').innerHTML = result.models.map((model) => `<option value="${escapeHtml(model.id)}">${escapeHtml(model.label)}</option>`).join('');
+    $('#model-help').textContent = result.source === 'openai' ? 'Showing models available to your saved OpenAI key.' : 'Save an OpenAI key to load models available to your account.';
+    toast(`${result.models.length} models loaded`);
+  } catch (error) { toast(error.message); }
+  finally { button.disabled = false; }
+});
+
+$('#preset-no-pricing').addEventListener('click', () => setTestPayload(noPricingPayload));
+$('#preset-pricing').addEventListener('click', () => setTestPayload(pricingPayload));
+function setTestPayload(payload) { $('#test-payload').value = JSON.stringify(payload, null, 2); }
+
+$('#generate-test').addEventListener('click', async () => {
+  const button = $('#generate-test'); button.disabled = true; button.textContent = 'Generating…';
+  try {
+    lastTestPayload = JSON.parse($('#test-payload').value);
+    const result = await api('/api/test/preview', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({payload:lastTestPayload}) });
+    lastTestDraft = result.draft; renderTestResult(result);
+    $('#send-slack-test').disabled = !(result.integrations.slack && !result.integrations.demoMode);
+    toast('Test draft generated — edit any field');
+  } catch (error) { toast(error.message); }
+  finally { button.disabled = false; button.textContent = 'Map payload & generate preview'; }
+});
+
+function renderTestResult(result) {
+  $('#mapping-results').innerHTML = Object.entries(result.mapping).map(([key,value]) => `<div class="mapping-row"><span>${escapeHtml(key.replaceAll('_',' '))}</span><code>${escapeHtml(value === undefined || value === null || value === '' ? 'Not mapped' : typeof value === 'object' ? JSON.stringify(value) : value)}</code></div>`).join('');
+  const pricing = result.pricing.discussed; $('#template-result').textContent = pricing ? 'Pricing discussed template' : 'No-pricing template';
+  $('#model-result').textContent = result.model; $('#pricing-evidence').classList.toggle('pricing', pricing);
+  $('#pricing-evidence').innerHTML = pricing ? `<strong>Pricing evidence found</strong><br>${result.pricing.evidence.map(escapeHtml).join('<br>')}` : '<strong>No explicit pricing evidence</strong><br>Pricing and onboarding details will not be included.';
+  $('#test-recipient').value = result.draft.recipient || ''; $('#test-cc').value = (result.draft.cc || []).join(', '); $('#test-bcc').value = (result.draft.bcc || []).join(', ');
+  $('#test-subject').value = result.draft.subject || ''; $('#test-body').value = result.draft.body || '';
+}
+
+$('#send-slack-test').addEventListener('click', async () => {
+  if (!lastTestPayload || !lastTestDraft) return toast('Generate a preview first');
+  const button = $('#send-slack-test'); button.disabled = true;
+  try {
+    const draft = { ...lastTestDraft, recipient:$('#test-recipient').value, cc:splitEmails($('#test-cc').value), bcc:splitEmails($('#test-bcc').value), subject:$('#test-subject').value, body:$('#test-body').value };
+    await api('/api/test/slack', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({payload:lastTestPayload,draft}) });
+    toast('Editable test sent to Slack');
+  } catch (error) { toast(error.message); button.disabled = false; }
+});
+
 async function api(url, init) { const response = await fetch(url, init); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Request failed'); return data; }
 function toast(message) { const el = $('#toast'); el.textContent = message; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2600); }
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
 function relative(date) { const seconds = Math.round((new Date(date)-Date.now())/1000); const unit = Math.abs(seconds)>86400?'day':Math.abs(seconds)>3600?'hour':Math.abs(seconds)>60?'minute':'second'; const divisor = {day:86400,hour:3600,minute:60,second:1}[unit]; return new Intl.RelativeTimeFormat('en',{numeric:'auto'}).format(Math.round(seconds/divisor),unit); }
+function splitEmails(value) { return String(value || '').split(',').map((item) => item.trim()).filter(Boolean); }
 
 load(); setInterval(load, 15000);

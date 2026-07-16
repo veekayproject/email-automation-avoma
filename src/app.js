@@ -3,8 +3,9 @@ import express from 'express';
 import { config, integrationStatus } from './config.js';
 import { audit, getDraftByMeeting, getDraftByToken, getMeeting, listAudit, listMeetings, updateDraft, updateMeeting } from './db.js';
 import { safeEqual } from './lib/crypto.js';
-import { acceptWebhook, approveAndSend, cancelMeeting, editDraft, processMeeting } from './services/processor.js';
-import { demoMeeting } from './services/meeting.js';
+import { acceptWebhook, approveAndSend, cancelMeeting, createSlackTestReview, editDraft, processMeeting } from './services/processor.js';
+import { demoMeeting, mappingSummary, meetingEligibility, normalizeWebhook } from './services/meeting.js';
+import { detectPricingDiscussion, generateEmail, listAvailableModels } from './services/generator.js';
 import { createMicrosoftAuthUrl, completeMicrosoftAuth, listMicrosoftAccounts } from './services/microsoft.js';
 import { downloadSlackFiles, extractModalValues, openEditModal, verifySlackRequest } from './services/slack.js';
 import { loadStoredSettings, publicSettings, saveSettings, webhookUrl } from './settings.js';
@@ -67,6 +68,27 @@ app.post('/api/settings', adminAuth, (req, res) => {
   try {
     const result = saveSettings(req.body, 'dashboard');
     res.json({ ...result, accounts: listMicrosoftAccounts(), reauthenticate: Boolean(req.body.ADMIN_PASSWORD) });
+  } catch (error) { res.status(400).json({ error: error.message }); }
+});
+app.get('/api/openai/models', adminAuth, async (_req, res) => {
+  try { res.json(await listAvailableModels()); } catch (error) { res.status(400).json({ error: error.message }); }
+});
+app.post('/api/test/preview', adminAuth, async (req, res) => {
+  try {
+    const payload = typeof req.body.payload === 'string' ? JSON.parse(req.body.payload) : req.body.payload;
+    const meeting = normalizeWebhook(payload || {}); const eligibility = meetingEligibility(meeting);
+    const draft = await generateEmail(meeting); const pricing = detectPricingDiscussion(meeting);
+    res.json({ mapping: mappingSummary(meeting), eligibility, pricing, draft: { ...draft, recipient: meeting.recipientEmail, cc: config.defaultCc, bcc: [] }, integrations: integrationStatus(), model: config.demoMode ? 'Demo generator (no API call)' : config.OPENAI_MODEL });
+  } catch (error) { res.status(400).json({ error: error.message }); }
+});
+app.post('/api/test/slack', adminAuth, async (req, res) => {
+  try {
+    if (config.demoMode) throw new Error('Enable live mode before sending a real Slack test');
+    if (!integrationStatus().slack) throw new Error('Save the Slack bot token and signing secret first');
+    const payload = typeof req.body.payload === 'string' ? JSON.parse(req.body.payload) : req.body.payload;
+    const meeting = normalizeWebhook(payload || {});
+    const result = await createSlackTestReview(meeting, req.body.draft || {}, 'dashboard-test');
+    res.status(201).json({ ok: true, meetingId: result.meeting.id, status: result.meeting.status });
   } catch (error) { res.status(400).json({ error: error.message }); }
 });
 app.get('/api/meetings', adminAuth, (_req, res) => res.json({ meetings: listMeetings() }));
