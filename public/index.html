@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FollowPilot</title><link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/"><span class="logo">F</span><span>FollowPilot</span></a><div class="live"><i></i> Agent online</div></header>
+  <main class="shell">
+    <section class="hero">
+      <div><p class="eyebrow">POST-MEETING AGENT</p><h1>Every follow-up,<br><em>ready for review.</em></h1><p class="lede">One webhook turns meeting notes into specific, human-approved Outlook emails—without losing the AE’s voice or control.</p></div>
+      <div class="hero-stat"><span id="review-count">0</span><small>waiting for review</small></div>
+    </section>
+
+    <section class="webhook-card">
+      <div><p class="eyebrow">YOUR INBOUND WEBHOOK</p><h2>Paste once. Let the agent listen.</h2><p>Use this URL in Avoma or any app that can send meeting JSON.</p></div>
+      <div class="copy-row"><code id="webhook-url">Loading…</code><button id="copy-webhook" class="icon-button" aria-label="Copy webhook">Copy</button></div>
+    </section>
+
+    <section class="integration-strip" id="integrations"></section>
+
+    <section class="section-head"><div><p class="eyebrow">INBOX</p><h2>Recent follow-ups</h2></div><div class="section-actions"><button id="demo-button">Run sample meeting</button><button id="refresh-button" class="quiet">Refresh</button></div></section>
+    <section class="table-card">
+      <div class="table-head"><span>Meeting</span><span>Recipient</span><span>Status</span><span>Created</span></div>
+      <div id="meeting-list" class="meeting-list"><div class="empty">Loading your workspace…</div></div>
+    </section>
+
+    <section class="setup-grid">
+      <div><p class="eyebrow">GO LIVE</p><h2>Four connections.<br>One smooth handoff.</h2><p class="muted">The dashboard automatically detects which services are ready. Keep demo mode on while you test.</p></div>
+      <ol>
+        <li><span>01</span><div><strong>Meeting source</strong><p>Add the webhook URL in Avoma and use the shared secret.</p></div></li>
+        <li><span>02</span><div><strong>Draft intelligence</strong><p>Add your OpenAI key and customize tone and template in environment settings.</p></div></li>
+        <li><span>03</span><div><strong>Human review</strong><p>Connect a Slack app and map each AE email to their Slack user ID.</p></div></li>
+        <li><span>04</span><div><strong>Personal sending</strong><p>Connect each AE’s Microsoft account below.</p><form id="connect-form"><input id="ae-email" type="email" placeholder="ae@yourcompany.com" required><button>Connect Outlook</button></form><div id="account-list"></div></div></li>
+      </ol>
+    </section>
+  </main>
+  <dialog id="detail-dialog"><button class="dialog-close" aria-label="Close">×</button><div id="detail-content"></div></dialog>
+  <div id="toast" role="status"></div>
+  <script type="module" src="/assets/app.js"></script>
+</body>
+</html>
