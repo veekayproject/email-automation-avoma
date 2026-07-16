@@ -1,0 +1,22 @@
+services:
+  followpilot:
+    build: .
+    container_name: followpilot
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3100:3000"
+    environment:
+      PORT: "3000"
+      NODE_ENV: production
+      DATABASE_PATH: /app/data/followpilot.db
+      DEMO_MODE: "true"
+    volumes:
+      - followpilot_data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  followpilot_data:

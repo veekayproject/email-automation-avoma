@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: followpilot
+    runtime: docker
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: followpilot-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: APP_BASE_URL
+        sync: false
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: APP_ENCRYPTION_KEY
+        generateValue: true
+      - key: AVOMA_WEBHOOK_SECRET
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SLACK_BOT_TOKEN
+        sync: false
+      - key: SLACK_SIGNING_SECRET
+        sync: false
+      - key: MICROSOFT_CLIENT_ID
+        sync: false
+      - key: MICROSOFT_CLIENT_SECRET
+        sync: false
+      - key: MICROSOFT_REDIRECT_URI
+        sync: false
+      - key: INTERNAL_DOMAINS
+        sync: false
+      - key: DEMO_MODE
+        value: "false"

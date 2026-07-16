@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FollowPilot</title><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/settings.css"><link rel="stylesheet" href="/assets/test-lab.css"><style>.integration-strip{grid-template-columns:repeat(6,1fr)}@media(max-width:760px){.integration-strip{grid-template-columns:1fr 1fr}}</style>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/"><span class="logo">F</span><span>FollowPilot</span></a><nav class="app-nav"><button class="nav-button active" data-tab="overview">Overview</button><button class="nav-button" data-tab="test">Test Lab</button><button class="nav-button" data-tab="settings">Settings</button></nav><div class="live"><i></i> Agent online</div></header>
+  <main class="shell">
+    <div id="overview-panel" class="tab-panel active">
+    <section class="hero">
+      <div><p class="eyebrow">POST-MEETING AGENT</p><h1>Every follow-up,<br><em>ready for review.</em></h1><p class="lede">One webhook turns meeting notes into specific, human-approved Outlook emails—without losing the AE’s voice or control.</p></div>
+      <div class="hero-stat"><span id="review-count">0</span><small>waiting for review</small></div>
+    </section>
+
+    <section class="webhook-card">
+      <div><p class="eyebrow">YOUR INBOUND WEBHOOK</p><h2>Paste once. Let the agent listen.</h2><p>Use this URL in Avoma or any app that can send meeting JSON.</p></div>
+      <div class="copy-row"><code id="webhook-url">Loading…</code><button id="copy-webhook" class="icon-button" aria-label="Copy webhook">Copy</button></div>
+    </section>
+
+    <section class="integration-strip" id="integrations"></section>
+
+    <section class="section-head"><div><p class="eyebrow">INBOX</p><h2>Recent follow-ups</h2></div><div class="section-actions"><button id="demo-button">Run sample meeting</button><button id="refresh-button" class="quiet">Refresh</button></div></section>
+    <section class="table-card">
+      <div class="table-head"><span>Meeting</span><span>Recipient</span><span>Status</span><span>Created</span></div>
+      <div id="meeting-list" class="meeting-list"><div class="empty">Loading your workspace…</div></div>
+    </section>
+
+    <section class="setup-grid">
+      <div><p class="eyebrow">GO LIVE</p><h2>Four connections.<br>One smooth handoff.</h2><p class="muted">The dashboard automatically detects which services are ready. Keep demo mode on while you test.</p></div>
+      <ol>
+        <li><span>01</span><div><strong>Meeting source</strong><p>Add the webhook URL in Avoma and use the shared secret.</p></div></li>
+        <li><span>02</span><div><strong>Draft intelligence</strong><p>Add your OpenAI key and customize tone and template in Settings.</p></div></li>
+        <li><span>03</span><div><strong>Human review</strong><p>Connect a Slack app and map each AE email to their Slack user ID.</p></div></li>
+        <li><span>04</span><div><strong>Personal sending</strong><p>Connect each AE’s Microsoft account below.</p><form id="connect-form"><input id="ae-email" type="email" placeholder="ae@yourcompany.com" required><button>Connect Outlook</button></form><div id="account-list"></div></div></li>
+      </ol>
+    </section>
+    </div>
+
+    <div id="test-panel" class="tab-panel">
+      <section class="test-hero"><div><p class="eyebrow">SAFE WORKBENCH</p><h1>Map it. Draft it. Edit it.</h1><p class="lede">Paste the exact Avoma webhook payload and see every mapped field, the selected template, and the editable Slack draft before anything can send.</p></div><div class="test-safety"><strong>No automatic email</strong><small>Slack tests still require the Send Email approval button.</small></div></section>
+      <section class="test-grid">
+        <div class="test-column"><div class="test-card"><div class="card-heading"><div><p class="eyebrow">1 · PAYLOAD</p><h2>Avoma webhook</h2></div><div class="preset-buttons"><button type="button" id="preset-no-pricing">No pricing</button><button type="button" id="preset-pricing">Pricing discussed</button></div></div><textarea id="test-payload" rows="24" spellcheck="false"></textarea><button type="button" class="primary wide-button" id="generate-test">Map payload & generate preview</button></div>
+        <div class="test-card"><p class="eyebrow">2 · FIELD MAPPING</p><h2>What the agent understood</h2><div id="mapping-results" class="mapping-results"><p class="muted">Run the payload to inspect the mapping.</p></div></div></div>
+        <div class="test-column"><div class="test-card"><div class="card-heading"><div><p class="eyebrow">3 · TEMPLATE ROUTER</p><h2 id="template-result">Waiting for payload</h2></div><span id="model-result" class="model-chip">No model call</span></div><div id="pricing-evidence" class="decision-box">Pricing is included only when explicit evidence is found.</div></div>
+        <div class="test-card"><p class="eyebrow">4 · EDITABLE REVIEW</p><h2>Slack-style draft</h2><div class="slack-preview"><div class="slack-avatar">F</div><div><strong>FollowPilot</strong><small> APP</small><p>Follow-up draft ready for AE review</p></div></div><div class="test-draft-form"><label>To<input id="test-recipient" type="email"></label><div class="row"><label>CC<input id="test-cc"></label><label>BCC<input id="test-bcc"></label></div><label>Subject<input id="test-subject"></label><label>Email body<textarea id="test-body" rows="18"></textarea></label></div><div class="edit-proof"><span>✓</span><div><strong>Every field above is editable</strong><small>The same To, CC, BCC, subject, body, and attachment controls appear in the Slack modal.</small></div></div><button type="button" id="send-slack-test" disabled>Send editable test to Slack</button><small class="test-warning">Available after Slack is connected and Live mode is enabled. Use your own email as the test recipient.</small></div></div>
+      </section>
+    </div>
+
+    <div id="settings-panel" class="tab-panel">
+      <section class="settings-hero"><div><p class="eyebrow">CONTROL CENTER</p><h1>Connect your workflow.</h1><p class="lede">Add credentials once. FollowPilot encrypts them in its persistent database and uses them immediately—no server-file editing required.</p></div><label class="mode-switch"><input id="live-mode" type="checkbox"><span></span><div><strong>Live mode</strong><small id="mode-description">Demo data only</small></div></label></section>
+      <form id="settings-form">
+        <section class="settings-section"><div class="settings-title"><span>01</span><div><h2>Workspace</h2><p>Public address, security, and meeting rules.</p></div></div><div class="settings-card form-grid">
+          <label class="wide">Public app URL<input name="APP_BASE_URL" type="url" placeholder="https://followup.yourdomain.com"><small>Use the subdomain pointing to this VPS.</small></label>
+          <label>Dashboard password<input name="ADMIN_PASSWORD" type="password" autocomplete="new-password" placeholder="Set or replace password"><small>Leave blank to keep the saved password.</small></label>
+          <label>Internal company domains<input name="INTERNAL_DOMAINS" placeholder="yourcompany.com, secondcompany.com"><small>Meetings containing only these domains are ignored.</small></label>
+        </div></section>
+
+        <section class="settings-section"><div class="settings-title"><span>02</span><div><h2>Avoma</h2><p>Receive completed meeting notes.</p></div></div><div class="settings-card form-grid">
+          <label>Avoma API key <em>optional</em><input name="AVOMA_API_KEY" type="password" data-secret placeholder="Only needed for ID-only webhooks"><small>Leave blank when Avoma sends notes, summary, participants, and actions in the webhook.</small></label>
+          <label>Avoma API URL <em>optional</em><input name="AVOMA_API_BASE_URL" type="url"><small>Used only to enrich incomplete webhook payloads.</small></label>
+          <label class="wide">Webhook secret<input name="AVOMA_WEBHOOK_SECRET" type="password" data-secret placeholder="Automatically generated"><small>The webhook URL above updates after saving.</small></label>
+          <label class="wide">Webhook field mapping<textarea name="WEBHOOK_FIELD_MAP" rows="12" spellcheck="false"></textarea><small>Map FollowPilot fields to dot-paths in the exact payload Avoma sends. Verify this in Test Lab.</small></label>
+        </div></section>
+
+        <section class="settings-section"><div class="settings-title"><span>03</span><div><h2>OpenAI & writing style</h2><p>Control how grounded follow-ups are written.</p></div></div><div class="settings-card form-grid">
+          <label>OpenAI API key<input name="OPENAI_API_KEY" type="password" data-secret placeholder="sk-..."></label>
+          <label>Model<div class="model-row"><input name="OPENAI_MODEL" list="model-options" placeholder="gpt-5.6-luna"><button type="button" id="refresh-models">Load available models</button></div><datalist id="model-options"><option value="gpt-5.6-luna"></option><option value="gpt-5.6-terra"></option><option value="gpt-5.6"></option><option value="gpt-4.1-mini"></option></datalist><small id="model-help">Luna is recommended for efficient high-volume follow-ups.</small></label>
+          <label>Tone<input name="EMAIL_TONE"></label>
+          <label>Maximum words<input name="EMAIL_MAX_WORDS" type="number" min="50" max="800"></label>
+          <label class="wide">General email rules<textarea name="EMAIL_TEMPLATE" rows="4"></textarea><small>Voice, personalization, CTA, sign-off, and rules common to every email.</small></label>
+          <label class="wide template-no-pricing">Template: pricing not discussed<textarea name="EMAIL_TEMPLATE_NO_PRICING" rows="9"></textarea><small>Based on your Calliope example. Pricing is forbidden in this path.</small></label>
+          <label class="wide template-pricing">Template: pricing discussed<textarea name="EMAIL_TEMPLATE_PRICING" rows="9"></textarea><small>Based on your Gail example. Used only with explicit pricing evidence.</small></label>
+          <label class="wide template-pricing">Approved pricing and onboarding block<textarea name="APPROVED_PRICING_TEXT" rows="11"></textarea><small>The agent can use this block only when pricing was explicitly discussed.</small></label>
+          <label class="wide">Default CC addresses<input name="DEFAULT_CC" placeholder="manager@company.com, ops@company.com"></label>
+        </div></section>
+
+        <section class="settings-section"><div class="settings-title"><span>04</span><div><h2>Slack review</h2><p>Route every draft to the correct AE.</p></div></div><div class="settings-card form-grid">
+          <label>Bot token<input name="SLACK_BOT_TOKEN" type="password" data-secret placeholder="xoxb-..."></label>
+          <label>Signing secret<input name="SLACK_SIGNING_SECRET" type="password" data-secret></label>
+          <label>Fallback channel ID<input name="SLACK_FALLBACK_CHANNEL" placeholder="C0123456789"></label>
+          <label class="wide">AE email → Slack user mapping<textarea name="AE_SLACK_MAP" rows="4" spellcheck="false" placeholder='{"ae@company.com":"U0123456789"}'></textarea></label>
+          <div class="endpoint wide"><span>Slack interaction URL</span><code id="slack-url">Save your public app URL first</code></div>
+        </div></section>
+
+        <section class="settings-section"><div class="settings-title"><span>05</span><div><h2>Microsoft Outlook</h2><p>Send from each AE’s own mailbox.</p></div></div><div class="settings-card form-grid">
+          <label>Application client ID<input name="MICROSOFT_CLIENT_ID"></label>
+          <label>Client secret<input name="MICROSOFT_CLIENT_SECRET" type="password" data-secret></label>
+          <label>Tenant ID<input name="MICROSOFT_TENANT_ID" placeholder="common"></label>
+          <label>Redirect URL<input name="MICROSOFT_REDIRECT_URI" type="url"></label>
+          <div class="wide connect-box"><div><strong>Connect an AE mailbox</strong><p>Save Microsoft settings first, then connect each sender once.</p></div><div class="connect-row"><input id="settings-ae-email" type="email" placeholder="ae@yourcompany.com"><button type="button" id="settings-connect-outlook">Connect Outlook</button></div><div id="settings-account-list"></div></div>
+        </div></section>
+
+        <section class="settings-section"><div class="settings-title"><span>06</span><div><h2>HubSpot <em>optional</em></h2><p>Log successfully sent emails against contacts.</p></div></div><div class="settings-card form-grid">
+          <label class="check-label wide"><input name="HUBSPOT_ENABLED" type="checkbox"><span>Log sent emails to HubSpot</span></label>
+          <label class="wide">Private app access token<input name="HUBSPOT_ACCESS_TOKEN" type="password" data-secret></label>
+        </div></section>
+
+        <div class="save-bar"><div><strong id="save-state">Settings are encrypted at rest</strong><small>Changes take effect immediately.</small></div><button type="submit" class="primary" id="save-settings">Save settings</button></div>
+      </form>
+    </div>
+  </main>
+  <dialog id="detail-dialog"><button class="dialog-close" aria-label="Close">×</button><div id="detail-content"></div></dialog>
+  <div id="toast" role="status"></div>
+  <script type="module" src="/assets/app.js"></script>
+</body>
+</html>
