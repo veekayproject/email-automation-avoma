@@ -26,7 +26,7 @@ export async function postReview(meeting, draft, { allowInDemo = false } = {}) {
 
 export async function updateReview(meeting, draft) {
   const client = slackClient();
-  if (!client || config.demoMode || draft.slack_channel === 'demo') return;
+  if (!client || draft.slack_channel === 'demo') return;
   await client.chat.update({ channel: draft.slack_channel, ts: draft.slack_ts, text: `Follow-up: ${meeting.status}`, blocks: reviewBlocks(meeting, draft) });
 }
 

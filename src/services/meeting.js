@@ -5,6 +5,7 @@ const emailOf = (person = {}) => first(person.email, person.email_address, perso
 const nameOf = (person = {}) => first(person.name, person.display_name, person.full_name, person.user?.name, emailOf(person)?.split('@')[0]);
 
 export function normalizeWebhook(payload) {
+  payload = unwrapEnvelope(payload);
   const root = payload.data?.meeting || payload.meeting || payload.data || payload;
   const participantsRaw = first(root.participants, root.attendees, root.meeting_participants, payload.participants, []) || [];
   const participants = participantsRaw.map((p) => ({
@@ -14,32 +15,38 @@ export function normalizeWebhook(payload) {
     isHost: Boolean(first(p.is_host, p.isHost, p.organizer, false))
   }));
   const owner = first(root.owner, root.organizer, root.host, payload.owner, {}) || {};
-  const ownerEmail = (first(root.owner_email, emailOf(owner), payload.owner_email) || '').toLowerCase();
+  const ownerEmail = (first(root.owner_email, root.organizer_email, emailOf(owner), payload.owner_email, payload.organizer_email) || '').toLowerCase();
   const external = participants.find((p) => p.email && !isInternalEmail(p.email, ownerEmail));
   return {
     id: String(first(mapped(payload, 'id'), root.id, root.meeting_id, root.uuid, payload.meeting_id, payload.id, '')),
     source: first(payload.source, 'avoma'),
-    event: String(first(payload.event, payload.event_type, payload.type, 'meeting.completed')).toLowerCase(),
+    event: String(first(payload.event, root.event_type, root.event_label, payload.event_type, payload.event_label, payload.type, 'meeting.completed')).toLowerCase(),
     title: first(mapped(payload, 'title'), root.title, root.subject, root.name, 'Untitled meeting'),
     meetingDate: first(root.start_at, root.start_time, root.started_at, root.meeting_date, root.date),
-    ownerName: first(mapped(payload, 'owner_name'), root.owner_name, nameOf(owner)),
+    ownerName: first(mapped(payload, 'owner_name'), root.owner_name, root.organizer_name, nameOf(owner)),
     ownerEmail: first(mapped(payload, 'owner_email'), ownerEmail),
     prospectName: first(mapped(payload, 'prospect_name'), root.prospect_name, external?.name),
     prospectCompany: first(mapped(payload, 'company'), root.company_name, root.account?.name, external?.company),
     recipientEmail: first(mapped(payload, 'recipient_email'), root.recipient_email, external?.email),
-    meetingUrl: first(mapped(payload, 'meeting_url'), root.url, root.web_url, root.avoma_url, root.recording_url),
+    meetingUrl: first(mapped(payload, 'meeting_url'), root.meeting_url, root.url, root.web_url, root.avoma_url, root.recording_url),
     crmUrl: first(mapped(payload, 'crm_url'), root.crm_url, root.deal?.url, root.contact?.url),
     hubspotContactId: first(root.hubspot_contact_id, root.contact?.id, root.crm?.contact_id),
     hubspotCompanyId: first(root.hubspot_company_id, root.account?.id, root.crm?.company_id),
     hubspotDealId: first(root.hubspot_deal_id, root.deal?.id, root.crm?.deal_id),
     participants: Array.isArray(mapped(payload, 'participants')) ? mapped(payload, 'participants').map((p) => ({ name:nameOf(p)||'Unknown participant', email:(emailOf(p)||'').toLowerCase(), company:first(p.company,p.organization?.name,p.company_name), isHost:Boolean(first(p.is_host,p.isHost,p.organizer,false)) })) : participants,
     summary: first(mapped(payload, 'summary'), root.summary, root.ai_summary, root.overview, payload.summary),
-    notes: first(mapped(payload, 'notes'), root.notes, root.ai_notes, root.meeting_notes, payload.notes),
+    notes: first(mapped(payload, 'notes'), root.notes, root.ai_notes_txt, root.ai_notes, root.meeting_notes, payload.notes),
     transcript: first(mapped(payload, 'transcript'), root.transcript, root.transcript_text, payload.transcript),
     actionItems: first(mapped(payload, 'action_items'), root.action_items, root.actionItems, payload.action_items, []),
     keyTopics: first(root.key_topics, root.keyTopics, root.topics, []),
     raw: payload
   };
+}
+
+function unwrapEnvelope(payload) {
+  const value = Array.isArray(payload) && payload.length === 1 ? payload[0] : payload;
+  if (value?.body && typeof value.body === 'object' && (value.headers || value.params || value.query)) return value.body;
+  return value || {};
 }
 
 export function mappingSummary(meeting) {
@@ -67,7 +74,7 @@ export function isInternalEmail(email, ownerEmail = '') {
 
 export function meetingEligibility(meeting) {
   if (!meeting.id) return { eligible: false, reason: 'Missing meeting ID' };
-  const eventReady = !meeting.event || ['completed','ready','processed','notes','analysis'].some((word) => meeting.event.includes(word));
+  const eventReady = !meeting.event || ['completed','ready','processed','note','analysis','ainote'].some((word) => meeting.event.includes(word));
   if (!eventReady) return { eligible: false, reason: `Event is not a completed/ready event: ${meeting.event}` };
   const external = meeting.participants.filter((p) => p.email && !isInternalEmail(p.email, meeting.ownerEmail));
   if (!external.length && !meeting.recipientEmail) return { eligible: false, reason: 'No external participant was found' };
