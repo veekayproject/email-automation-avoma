@@ -4,7 +4,7 @@ import { app } from '../src/app.js';
 import { config } from '../src/config.js';
 import { approveAndSend } from '../src/services/processor.js';
 import { detectPricingDiscussion } from '../src/services/generator.js';
-import { normalizeWebhook } from '../src/services/meeting.js';
+import { meetingEligibility, normalizeWebhook } from '../src/services/meeting.js';
 import { db, getDraftByMeeting, getMeeting } from '../src/db.js';
 
 let server; let base;
@@ -96,6 +96,25 @@ test('custom webhook paths map a non-Avoma payload', () => {
   assert.equal(meeting.recipientEmail, 'buyer@example.com');
   assert.equal(meeting.summary, 'Mapped summary');
   config.webhookFieldMap = previous;
+});
+
+test('raw Avoma AI Notes payload maps through an n8n capture envelope', () => {
+  const previousDomains = config.internalDomains;
+  config.internalDomains = ['vieu.com'];
+  const meeting = normalizeWebhook([{ headers: { host: 'example.test' }, params: {}, query: {}, body: {
+    uuid: 'avoma-note-1', event_type: 'AINOTE', event_label: 'AI Notes Ready', subject: 'Vieu x Nominal',
+    organizer_name: 'Rishabh Bajpai', organizer_email: 'rbajpai@vieu.com', start_at: '2026-07-14T15:30:00Z',
+    attendees: [{ name: 'Rishabh Bajpai', email: 'rbajpai@vieu.com' }, { name: 'Anastasia Chihai', email: 'anastasia@nominal.io' }],
+    ai_notes_txt: 'Discussed trial goals and next steps.', meeting_url: 'https://app.avoma.com/meetings/avoma-note-1'
+  } }]);
+  config.internalDomains = previousDomains;
+  assert.equal(meeting.id, 'avoma-note-1');
+  assert.equal(meeting.ownerEmail, 'rbajpai@vieu.com');
+  assert.equal(meeting.ownerName, 'Rishabh Bajpai');
+  assert.equal(meeting.recipientEmail, 'anastasia@nominal.io');
+  assert.equal(meeting.meetingUrl, 'https://app.avoma.com/meetings/avoma-note-1');
+  assert.equal(meeting.notes, 'Discussed trial goals and next steps.');
+  assert.equal(meetingEligibility(meeting).eligible, true);
 });
 
 test('Test Lab returns mapped fields and an editable conditional draft', async () => {

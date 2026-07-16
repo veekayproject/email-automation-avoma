@@ -37,6 +37,7 @@ export async function processMeeting(meetingId, options = {}) {
   if (getDraftByMeeting(meetingId) && !options.regenerate) return getMeeting(meetingId);
   const generated = await generateEmail(meeting);
   let draft = getDraftByMeeting(meetingId);
+  const existingSlack = draft?.slack_channel && draft?.slack_ts ? { channel: draft.slack_channel, ts: draft.slack_ts } : null;
   if (draft) {
     draft = updateDraft(meetingId, { subject: generated.subject, body: generated.body });
     audit(meetingId, 'draft_regenerated', { model: generated.model });
@@ -45,8 +46,14 @@ export async function processMeeting(meetingId, options = {}) {
       recipient: meeting.recipientEmail, cc: config.defaultCc, reviewToken: randomToken(), generation: generated });
   }
   updateMeeting(meetingId, { status: 'draft_created' });
-  const slack = await postReview(getMeeting(meetingId), draft);
-  draft = updateDraft(meetingId, { slackChannel: slack.channel, slackTs: slack.ts });
+  let slack;
+  if (options.regenerate && existingSlack && existingSlack.channel !== 'demo') {
+    await updateReview(getMeeting(meetingId), draft);
+    slack = existingSlack;
+  } else {
+    slack = await postReview(getMeeting(meetingId), draft);
+    draft = updateDraft(meetingId, { slackChannel: slack.channel, slackTs: slack.ts });
+  }
   updateMeeting(meetingId, { status: 'waiting_review' });
   audit(meetingId, 'review_requested', { slackChannel: slack.channel });
   return getMeeting(meetingId);
