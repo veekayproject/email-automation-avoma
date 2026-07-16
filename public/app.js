@@ -87,7 +87,9 @@ $('#settings-form').addEventListener('submit', async (event) => {
   event.preventDefault(); const button = $('#save-settings'); button.disabled = true; $('#save-state').textContent = 'Saving encrypted settings…';
   try {
     const form = new FormData(event.currentTarget); const payload = Object.fromEntries(form.entries());
-    payload.DEMO_MODE = String(!$('#live-mode').checked); payload.HUBSPOT_ENABLED = String(event.currentTarget.elements.namedItem('HUBSPOT_ENABLED').checked);
+    payload.DEMO_MODE = String(!$('#live-mode').checked);
+    payload.AUTOMATION_FILTERS_ENABLED = String(event.currentTarget.elements.namedItem('AUTOMATION_FILTERS_ENABLED').checked);
+    payload.HUBSPOT_ENABLED = String(event.currentTarget.elements.namedItem('HUBSPOT_ENABLED').checked);
     const result = await api('/api/settings', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(payload) });
     config.integrations = result.integrations; renderConfig(); $('#save-state').textContent = 'Saved — changes are active'; toast('Settings saved securely');
     settingsLoaded = false; if (result.reauthenticate) setTimeout(() => location.reload(), 1100);

@@ -117,6 +117,28 @@ test('raw Avoma AI Notes payload maps through an n8n capture envelope', () => {
   assert.equal(meetingEligibility(meeting).eligible, true);
 });
 
+test('automation filters require an allowed AE and matching meeting title', () => {
+  const previous = {
+    enabled: config.automationFiltersEnabled,
+    emails: config.allowedAeEmails,
+    titles: config.meetingTitleIncludes
+  };
+  config.automationFiltersEnabled = true;
+  config.allowedAeEmails = ['shivang@vieu.com'];
+  config.meetingTitleIncludes = ['discovery'];
+  const meeting = normalizeWebhook({
+    uuid: 'filtered-meeting', event_type: 'AINOTE', subject: 'Discovery Call with Acme',
+    organizer_email: 'shivang@vieu.com', organizer_name: 'Shivang',
+    attendees: [{ name: 'Shivang', email: 'shivang@vieu.com' }, { name: 'Buyer', email: 'buyer@acme.test' }]
+  });
+  assert.equal(meetingEligibility(meeting).eligible, true);
+  assert.match(meetingEligibility({ ...meeting, title: 'Customer onboarding' }).reason, /Meeting title did not match/);
+  assert.match(meetingEligibility({ ...meeting, ownerEmail: 'other@vieu.com' }).reason, /allowed AE filter/);
+  config.automationFiltersEnabled = previous.enabled;
+  config.allowedAeEmails = previous.emails;
+  config.meetingTitleIncludes = previous.titles;
+});
+
 test('Test Lab returns mapped fields and an editable conditional draft', async () => {
   const payload = externalMeeting('meeting-preview');
   payload.data.meeting.notes = 'Pricing was not discussed.';

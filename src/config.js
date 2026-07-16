@@ -15,6 +15,9 @@ const envSchema = z.object({
   AVOMA_WEBHOOK_SECRET: z.string().default(''),
   WEBHOOK_FIELD_MAP: z.string().default(''),
   INTERNAL_DOMAINS: z.string().default(''),
+  AUTOMATION_FILTERS_ENABLED: z.string().default('false'),
+  FILTER_ALLOWED_AE_EMAILS: z.string().default(''),
+  FILTER_TITLE_CONTAINS: z.string().default('discovery'),
   OPENAI_API_KEY: z.string().default(''),
   OPENAI_MODEL: z.string().default('gpt-5.6-luna'),
   SLACK_BOT_TOKEN: z.string().default(''),
@@ -48,6 +51,9 @@ export const config = {
   demoMode: raw.DEMO_MODE === 'true',
   hubspotEnabled: raw.HUBSPOT_ENABLED === 'true',
   internalDomains: raw.INTERNAL_DOMAINS.split(',').map((v) => v.trim().toLowerCase()).filter(Boolean),
+  automationFiltersEnabled: raw.AUTOMATION_FILTERS_ENABLED === 'true',
+  allowedAeEmails: splitList(raw.FILTER_ALLOWED_AE_EMAILS).map((v) => v.toLowerCase()),
+  meetingTitleIncludes: splitList(raw.FILTER_TITLE_CONTAINS).map((v) => v.toLowerCase()),
   defaultCc: raw.DEFAULT_CC.split(',').map((v) => v.trim()).filter(Boolean),
   aeSlackMap: parseJson(raw.AE_SLACK_MAP, {})
 };
@@ -60,11 +66,18 @@ export function applyRuntimeConfig(values = {}) {
   config.basePath = normalizeBasePath(config.BASE_PATH);
   config.hubspotEnabled = String(config.HUBSPOT_ENABLED) === 'true';
   config.internalDomains = String(config.INTERNAL_DOMAINS || '').split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
+  config.automationFiltersEnabled = String(config.AUTOMATION_FILTERS_ENABLED) === 'true';
+  config.allowedAeEmails = splitList(config.FILTER_ALLOWED_AE_EMAILS).map((v) => v.toLowerCase());
+  config.meetingTitleIncludes = splitList(config.FILTER_TITLE_CONTAINS).map((v) => v.toLowerCase());
   config.defaultCc = String(config.DEFAULT_CC || '').split(',').map((v) => v.trim()).filter(Boolean);
   config.aeSlackMap = parseJson(String(config.AE_SLACK_MAP || '{}'), {});
   config.webhookFieldMap = parseJson(String(config.WEBHOOK_FIELD_MAP || '{}'), {});
   config.EMAIL_MAX_WORDS = Number(config.EMAIL_MAX_WORDS) || 220;
   return config;
+}
+
+function splitList(value) {
+  return String(value || '').split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
 }
 
 function normalizeBasePath(value) {

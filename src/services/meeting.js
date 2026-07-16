@@ -76,6 +76,16 @@ export function meetingEligibility(meeting) {
   if (!meeting.id) return { eligible: false, reason: 'Missing meeting ID' };
   const eventReady = !meeting.event || ['completed','ready','processed','note','analysis','ainote'].some((word) => meeting.event.includes(word));
   if (!eventReady) return { eligible: false, reason: `Event is not a completed/ready event: ${meeting.event}` };
+  if (config.automationFiltersEnabled) {
+    const ownerEmail = String(meeting.ownerEmail || '').trim().toLowerCase();
+    if (config.allowedAeEmails.length && !config.allowedAeEmails.includes(ownerEmail)) {
+      return { eligible: false, reason: `Organizer ${ownerEmail || 'email is missing'} is not in the allowed AE filter` };
+    }
+    const title = String(meeting.title || '').toLowerCase();
+    if (config.meetingTitleIncludes.length && !config.meetingTitleIncludes.some((phrase) => title.includes(phrase))) {
+      return { eligible: false, reason: `Meeting title did not match: ${config.meetingTitleIncludes.join(', ')}` };
+    }
+  }
   const external = meeting.participants.filter((p) => p.email && !isInternalEmail(p.email, meeting.ownerEmail));
   if (!external.length && !meeting.recipientEmail) return { eligible: false, reason: 'No external participant was found' };
   if (!meeting.recipientEmail) return { eligible: false, reason: 'External recipient email is missing' };
