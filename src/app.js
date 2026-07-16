@@ -110,11 +110,11 @@ app.post('/review/:token/save', async (req, res) => {
   try {
     const draft = getDraftByToken(req.params.token); if (!draft) throw new Error('Review link not found');
     await editDraft(draft.meeting_id, { subject: req.body.subject, body: req.body.body, recipient: req.body.recipient, cc: split(req.body.cc), bcc: split(req.body.bcc) }, 'web reviewer');
-    res.redirect(`/review/${req.params.token}?saved=1`);
+    res.redirect(publicPath(`/review/${req.params.token}?saved=1`));
   } catch (error) { res.status(400).send(pageMessage('Could not save draft', error.message)); }
 });
 app.post('/review/:token/send', async (req, res) => {
-  try { const draft = getDraftByToken(req.params.token); if (!draft) throw new Error('Review link not found'); await approveAndSend(draft.meeting_id, 'web reviewer'); res.redirect(`/review/${req.params.token}`); }
+  try { const draft = getDraftByToken(req.params.token); if (!draft) throw new Error('Review link not found'); await approveAndSend(draft.meeting_id, 'web reviewer'); res.redirect(publicPath(`/review/${req.params.token}`)); }
   catch (error) { res.status(400).send(pageMessage('Could not send email', error.message)); }
 });
 
@@ -155,8 +155,9 @@ function adminAuth(req, res, next) {
 }
 const split = (value) => String(value || '').split(',').map((v) => v.trim()).filter(Boolean);
 const esc = (value) => String(value || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' })[c]);
-const pageMessage = (title, message) => `<!doctype html><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/assets/styles.css"><main class="center-card"><div class="logo">F</div><h1>${esc(title)}</h1><p>${esc(message)}</p><a class="button" href="/">Return to dashboard</a></main>`;
+const publicPath = (path = '/') => `${config.basePath}${path}` || '/';
+const pageMessage = (title, message) => `<!doctype html><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="${publicPath('/assets/styles.css')}"><main class="center-card"><div class="logo">F</div><h1>${esc(title)}</h1><p>${esc(message)}</p><a class="button" href="${publicPath('/')}">Return to dashboard</a></main>`;
 function reviewPage(meeting, draft) {
   const final = ['sent','cancelled'].includes(meeting.status);
-  return `<!doctype html><html><head><meta name="viewport" content="width=device-width"><title>Review · FollowPilot</title><link rel="stylesheet" href="/assets/styles.css"></head><body><main class="review-shell"><p class="eyebrow">FOLLOWPILOT · ${esc(meeting.status.replaceAll('_',' '))}</p><h1>Review follow-up to ${esc(meeting.prospect_name || draft.recipient)}</h1><p class="muted">${esc(meeting.title)} · ${esc(meeting.owner_name || meeting.owner_email)}</p><form method="post" action="/review/${esc(draft.review_token)}/save"><label>To<input name="recipient" value="${esc(draft.recipient)}" required></label><div class="row"><label>CC<input name="cc" value="${esc(draft.cc.join(', '))}"></label><label>BCC<input name="bcc" value="${esc(draft.bcc.join(', '))}"></label></div><label>Subject<input name="subject" value="${esc(draft.subject)}" required></label><label>Message<textarea name="body" rows="16" required>${esc(draft.body)}</textarea></label><div class="actions"><button ${final?'disabled':''}>Save changes</button></div></form><form method="post" action="/review/${esc(draft.review_token)}/send" class="send-form"><button class="primary" ${final?'disabled':''}>Send through Outlook</button></form><p class="notice">Email will only send when you press the send button. ${draft.attachments.length ? `${draft.attachments.length} attachment(s) included.` : ''}</p></main></body></html>`;
+  return `<!doctype html><html><head><meta name="viewport" content="width=device-width"><title>Review · FollowPilot</title><link rel="stylesheet" href="${publicPath('/assets/styles.css')}"></head><body><main class="review-shell"><p class="eyebrow">FOLLOWPILOT · ${esc(meeting.status.replaceAll('_',' '))}</p><h1>Review follow-up to ${esc(meeting.prospect_name || draft.recipient)}</h1><p class="muted">${esc(meeting.title)} · ${esc(meeting.owner_name || meeting.owner_email)}</p><form method="post" action="${publicPath(`/review/${esc(draft.review_token)}/save`)}"><label>To<input name="recipient" value="${esc(draft.recipient)}" required></label><div class="row"><label>CC<input name="cc" value="${esc(draft.cc.join(', '))}"></label><label>BCC<input name="bcc" value="${esc(draft.bcc.join(', '))}"></label></div><label>Subject<input name="subject" value="${esc(draft.subject)}" required></label><label>Message<textarea name="body" rows="16" required>${esc(draft.body)}</textarea></label><div class="actions"><button ${final?'disabled':''}>Save changes</button></div></form><form method="post" action="${publicPath(`/review/${esc(draft.review_token)}/send`)}" class="send-form"><button class="primary" ${final?'disabled':''}>Send through Outlook</button></form><p class="notice">Email will only send when you press the send button. ${draft.attachments.length ? `${draft.attachments.length} attachment(s) included.` : ''}</p></main></body></html>`;
 }

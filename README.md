@@ -46,6 +46,8 @@ Build with the included `Dockerfile`. A ready-to-use `render.yaml` is included; 
 
 For a VPS, run `docker compose -f docker-compose.vps.yml up -d --build`, route a subdomain to local port `3100`, then complete every provider connection in **Settings**. API credentials are AES-256-GCM encrypted in the persistent `followpilot_data` volume; a unique master key is generated automatically.
 
+On the bundled Hostinger n8n VPS, FollowPilot can instead use the existing HTTPS host at `/followpilot` without changing the n8n service. The `docker-compose.hostinger-path.yml` override attaches only FollowPilot to Traefik's `root_default` network and adds a higher-priority path router.
+
 ## Safety model
 
 FollowPilot never auto-sends generated mail. Every draft must transition from `waiting_review` to `sending` through a signed Slack action by an authorized AE. Each meeting ID is unique in the database, and a second send is blocked both before and inside the database transaction.

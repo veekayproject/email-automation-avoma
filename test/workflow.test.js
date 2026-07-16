@@ -18,6 +18,23 @@ test('health endpoint is ready', async () => {
   assert.equal((await response.json()).ok, true);
 });
 
+test('dashboard assets use relative paths for reverse-proxy path hosting', async () => {
+  const response = await fetch(`${base}/`); const html = await response.text();
+  assert.equal(response.status, 200);
+  assert.match(html, /<base href="\.\/">/);
+  assert.match(html, /src="assets\/app\.js"/);
+  assert.doesNotMatch(html, /src="\/assets\/app\.js"/);
+});
+
+test('server-generated pages honor the configured public path', async () => {
+  const previous = config.basePath; config.basePath = '/followpilot';
+  const response = await fetch(`${base}/review/missing-token`); const html = await response.text();
+  config.basePath = previous;
+  assert.equal(response.status, 404);
+  assert.match(html, /href="\/followpilot\/assets\/styles\.css"/);
+  assert.match(html, /href="\/followpilot\/"/);
+});
+
 test('webhook creates one grounded review draft and rejects duplicates', async () => {
   const payload = externalMeeting('meeting-duplicate');
   const first = await fetch(`${base}/api/webhooks/avoma`, request(payload));

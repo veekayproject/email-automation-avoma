@@ -1,4 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
+const basePath = new URL('.', document.baseURI).pathname.replace(/\/$/, '');
+const withBasePath = (path) => `${basePath}${path}`;
 let config;
 let settingsLoaded = false;
 let lastTestPayload = null;
@@ -42,7 +44,7 @@ async function showDetail(id) {
 $('#copy-webhook').addEventListener('click', async () => { await navigator.clipboard.writeText(config.webhookUrl); toast('Webhook URL copied'); });
 $('#refresh-button').addEventListener('click', load);
 $('#demo-button').addEventListener('click', async () => { try { $('#demo-button').disabled = true; await api('/api/demo', { method:'POST' }); toast('Sample meeting received'); setTimeout(load, 900); } catch (e) { toast(e.message); } finally { $('#demo-button').disabled = false; } });
-$('#connect-form').addEventListener('submit', (event) => { event.preventDefault(); location.href = `/auth/microsoft/start?email=${encodeURIComponent($('#ae-email').value)}`; });
+$('#connect-form').addEventListener('submit', (event) => { event.preventDefault(); location.href = withBasePath(`/auth/microsoft/start?email=${encodeURIComponent($('#ae-email').value)}`); });
 $('.dialog-close').addEventListener('click', () => $('#detail-dialog').close());
 
 document.querySelectorAll('.nav-button').forEach((button) => button.addEventListener('click', async () => {
@@ -95,7 +97,7 @@ $('#settings-form').addEventListener('submit', async (event) => {
 
 $('#settings-connect-outlook').addEventListener('click', () => {
   const email = $('#settings-ae-email').value.trim(); if (!email.includes('@')) return toast('Enter the AE email first');
-  location.href = `/auth/microsoft/start?email=${encodeURIComponent(email)}`;
+  location.href = withBasePath(`/auth/microsoft/start?email=${encodeURIComponent(email)}`);
 });
 
 $('#refresh-models').addEventListener('click', async () => {
@@ -144,7 +146,7 @@ $('#send-slack-test').addEventListener('click', async () => {
   } catch (error) { toast(error.message); button.disabled = false; }
 });
 
-async function api(url, init) { const response = await fetch(url, init); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Request failed'); return data; }
+async function api(url, init) { const response = await fetch(withBasePath(url), init); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Request failed'); return data; }
 function toast(message) { const el = $('#toast'); el.textContent = message; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2600); }
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
 function relative(date) { const seconds = Math.round((new Date(date)-Date.now())/1000); const unit = Math.abs(seconds)>86400?'day':Math.abs(seconds)>3600?'hour':Math.abs(seconds)>60?'minute':'second'; const divisor = {day:86400,hour:3600,minute:60,second:1}[unit]; return new Intl.RelativeTimeFormat('en',{numeric:'auto'}).format(Math.round(seconds/divisor),unit); }
